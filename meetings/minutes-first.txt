@@ -1,0 +1,39 @@
+notes
+
+    skin disseases
+        * dataset exists & public (ISIC)
+        * article nature 
+            used google algo trained on generic imgs
+            knowledge transfer
+
+    creative network
+        * music, art, ..
+        * modify/expand
+    
+    baby steps ai : neural network for game
+        * algo by deepmind (nature cover)
+            - general
+            - same algo for different game
+            - markov dic. process
+            - action / value
+            - nn takes pixels from game
+            - state cnn
+            - use very simple game (runner)
+            - lib: openai 
+                reinforced learning
+                    - GENE (spelling?)
+                    - python interface
+            - investigate knowledge transfer
+
+    historical theories 
+        - google ngram
+    
+    bioinformatics
+        
+    stock markets
+    
+    evolutionary simulation of learning agents
+
+    timon will github 
+    
+                    
