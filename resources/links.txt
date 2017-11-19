@@ -1,0 +1,12 @@
+Project Magenta: Music and Art with Machine Learning (Google I/O '17)
+    https://www.youtube.com/watch?v=2FAjQ6R_bf0
+
+AXELROD: A research tool for the Iterated Prisoner's Dilemma 
+    https://github.com/Axelrod-Python/Axelrod
+
+A simple evolutionary process in 40 lines of Python
+    https://vknight.org/unpeudemath/mathematics/2017/03/08/simple-evolutionary-process.html
+
+NSynth: Neural Audio Synthesis
+    - data sets :)
+    https://magenta.tensorflow.org/nsynth
