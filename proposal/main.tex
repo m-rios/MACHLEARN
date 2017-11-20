@@ -1,6 +1,8 @@
-\documentclass[10pt]{report}
+\documentclass[10pt]{article}
+\usepackage{hyperref}
+
 \title{Mutual Training in Late-Game Chess: A Comparison Between Dataset-Based
-and Reinforced Learning Algorithms.}
+and Reinforced Learning Algorithms}
 \author{Mario\footnote{Mario Rios, s3485781.} \and Matthias \footnote{Matthias Haucke,
 p282705.}
 \and Swaraj\footnote{Swaraj Dalmia, s3494950.} \and Timon \footnote{Timon van
@@ -12,24 +14,15 @@ der Berg, s1925873.}}
 
 \maketitle
 
-\section{proposal}
-\subsection{Application}
-    \include{application}
-\subsection{Data set}
-%    \include{dataset}
-\subsection{Methods}
-    \include{methods}
-\subsection{Programming language}
-    \include{language}
-\subsection{Planning}
-    \include{planning}
-
-
-
-\begin{thebibliography}{99}
-
-\end{thebibliography}
-
-
+\section{Application}
+    \input{application}
+\section{Data set}
+    \input{dataset}
+\section{Methods}
+    \input{methods}
+\section{Programming language}
+    \input{language}
+\section{Planning}
+    \input{planning}
 
 \end{document}
