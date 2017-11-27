@@ -13,3 +13,7 @@ NSynth: Neural Audio Synthesis
 
 GYM: A toolkit for developing and comparing reinforcement learning algorithms. 
     https://github.com/openai/gym
+
+Q learning example: https://github.com/paintception/A-Reinforcement-Learning-Approach-for-Solving-Chess-Endgames
+
+End Game Tablebases: http://kirill-kryukov.com/chess/tablebases-online/
