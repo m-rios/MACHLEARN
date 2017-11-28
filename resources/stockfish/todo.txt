@@ -1,0 +1,13 @@
+generate list of end-game positions - 
+    king rook / king knight
+    convert to something usable - 
+    remove duplicates
+        - search?
+        - inner product?
+
+allow specification of game states (FEN) rather than moves
+    - in
+    - out
+look at other other datasets & load 
+
+read multilayer perceptron
