@@ -320,4 +320,4 @@
 (seed)
 
 (format t "~&; Generating 100 observations.~%; Saving to file `knight-pins'~%")
-(print-quinlan-to-file "knight-pins" 100000)
+(print-quinlan-to-file "knight-pins" 1000000)
