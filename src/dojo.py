@@ -1,5 +1,7 @@
 from agent import Agent
-from stockfish import Stockfish
+import chess
+import chess.uci
+import chess.svg
 
 class Dojo( object ):
     """Dojo class
@@ -17,45 +19,44 @@ class Dojo( object ):
         Arguments:
             white {Agent} -- Agent class of the first agent to play (white)
             black {Agent} -- Agent class of the second agent to play (black)
-            initialState {For now this is a list of strings with each move} -- initial configuration of the board
+            initialState {string} -- initial configuration of the board in FEN notation
         """
         
         assert issubclass(white, Agent) and issubclass(black, Agent)
 
-        self.white = white(initialState)
-        self.black = black(initialState)
+        self.white = white(initialState, 100)
+        self.black = black(initialState, 100)
         # Depending on our implementation of the state representation we might have to do some processing to pass it to
         # stockfish, as of now i'll assume it is an string already compatible with Stockfish
-        self.stockfish = Stockfish()
-        self.stockfish.set_position(initialState)
-        self.initialState = initialState
+        self.board = chess.Board(initialState)
     
-    def train(self):
-        """Train
+    def play(self):
+        """Play
         
         Main loop where the game is actually played
+
+        Returns a history with all the moves in svg.
         """
-        # Until we have a better representation system, state is determined by the history of moves
-        state = self.initialState
+        history = []
         while True:
             # White turn
             whiteMove = self.white.next_action()
             # This is a safeguard and should never be happen. Agents should always propose valid moves.
-            assert self.stockfish.is_move_correct(whiteMove)
-            if whiteMove is None:
+            assert whiteMove in self.board.legal_moves
+            self.board.push(whiteMove)
+            history.append(chess.svg.board(board=self.board))
+            if self.board.is_game_over():
                 break
-            self.stockfish.set_position([whiteMove])
-            state += [whiteMove]
-            self.black.state = state
-            self.black.reward = 0 #Boilerplate until we implement a proper reward system
+            self.black.state = self.board.fen()
+            # self.black.reward = engine.
             # Black turn
             blackMove = self.black.next_action()
-            assert self.stockfish.is_move_correct(blackMove)
-            if blackMove is None:
+            assert blackMove in self.board.legal_moves
+            self.board.push(blackMove)
+            history.append(chess.svg.board(board=self.board))
+            if self.board.is_game_over():
                 break
-            self.stockfish.set_position([blackMove])
-            state += [blackMove]
-            self.white.state = state
-            self.white.reward = 0
+            self.white.state = self.board.fen()
+            # self.white.reward = self.board.
         
-        return state
+        return (history, self.board.result())
