@@ -357,5 +357,7 @@ venv.bak/
 
 .vscode
 
+results/svg/*.svg
+
 # End of https://www.gitignore.io/api/macos,latex,python
 
