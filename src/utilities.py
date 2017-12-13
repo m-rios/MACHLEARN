@@ -36,3 +36,8 @@ def fromFen(fenstring):
     """ convert fen notaton to bit notation """ 
 
     return findPieces(parsePieces(fenstring))
+
+
+if __name__ == "__main__":
+    test = "rnbqkbnr/ppp2ppp/3p1p2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    print(fromFen(test))

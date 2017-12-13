@@ -1,14 +1,19 @@
-import numpy as npy
+from numpy import random as npy.random
+from numpy import tanh as npy.tanh
 from utilities import expandEmpty, parsePieces, findPieces, fromFen
 
 class Layer:
 
     """ a single layer of the multi-layer perceptron """ 
 
-    def __init__(self, inputsize = 1, outputsize = 1): 
-        self.inputsize = inputsize
+    def __init__(self, number, inputsize = 1, outputsize = 1): 
+
+        """ constructor """
+
+        self.number     = number 
+        self.inputsize  = inputsize
         self.outputsize = outputsize
-        self.w = npy.random.rand(self.inputsize, self.outputsize)
+        self.w          = npy.random.rand(self.inputsize, self.outputsize)
 
 class MultiLayerPerceptron:
 
@@ -16,41 +21,69 @@ class MultiLayerPerceptron:
 
     def __init__(self, eta, numlayers, inputsizes, outputsizes):
 
-        self.layers = [Layer(inputsizes[i], outputsizes[i])
-                for i in range(0, numlayers)] 
+        """ constructor """ 
 
+        self.layers    = [Layer(i, inputsizes[i], outputsizes[i])
+                                            for i in range(0, numlayers)] 
         self.eta       = eta
-        self.numlayers = numlayers                          
 
-    def updateNotFirst(self, layernumber):
+    def updateLayer(self, layer):
 
-        """ update rule for layers 2,3, ... """
+        """ update layer according to update rule """
 
-        print("UPDATING LAYER NOT FIRST")
-    
-    def updateFirst(self):
-
-        """ updaterule for layer 1 """ 
-
-        print("UPDATING FIRST LAYER")
-
-    def updateLayer(self, layernumber):
-
-        """ update according to update rule """
-
-        if layernumber >= 1:
-            self.updateNotFirst(layernumber)
-        else:
-            self.updateFirst()
+        for h in range(1, layer.inputsize):
+            for l in range(1, layer.outputsize):
+                delta          = self.delta[layer.number][l]
+                out            = self.out[layer.number - 1][h] 
+                layer.w[h, l] += self.eta * delta * out
         
     def train(self, fenboard, score):
 
         """ train to produce score given board """
 
-        self.board = fromFen(fenboard)
-        self.targ = score
-        for layernum in range(self.numlayers):
-            self.updateLayer(layernum)
+        self.board   = fromFen(fenboard)
+        self.targ    = score
+        
+        self.delta   = calculateDelta();         
+        for layer in self.layers:
+            updateLayer(layer)
+
+    def delta(self, n):
+
+        """ recusively calculate delta :) """
+
+        if self.delta[n] == None:
+            delta(n - 1)
+        self.delta[n] = 
+
+    def calculateDelta(self):
+
+        """ calculate a list of delta lists, back-propagating """
+
+        self.delta      = [ [None] * layer.outputsize for layer in self.layers ] 
+        self.delta[-1]  = self.targ - score()
+        for revidx in range(0, len(self.layers):        # test this
+            idx = len(self.layers)  - revidx
+            leftsum = 1
+            rightsum = 1
+            self.delta[idx] = leftsum * activationFunDev(rightsum)
+
+    def activationFun(self, vector):
+       
+        """ activation function of multilayer perceptron """
+
+        return npy.tanh(vector)
+
+    def activationFunDev(self, vector):
+        
+        return  1 - npy.tanh(vector) ** 2
+
+    def score(self):
+
+        """ score self.board using the trained algo """
+
+        return 1
+
     
 if __name__ == "__main__":
     test = "rnbqkbnr/ppp2ppp/3p1p2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
