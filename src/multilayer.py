@@ -11,7 +11,7 @@ class Layer:
 
         """ constructor """
 
-        self.number     = number                        # number of nodes
+        self.number     = number                      # identify layer 
         self.inputsize  = inputsize                     
         self.outputsize = outputsize                   
         self.w          = npy.random.rand(self.inputsize, self.outputsize)
@@ -60,17 +60,14 @@ class MultiLayerPerceptron:
 
     def calcDelta(self):
 
-        """ calculate a list of delta lists, back-propagating """
+        """ calculate delta's, back-propagating """
        
         self.layers[-1].delta = self.targ - self.layers[-1].output
-        for n in [0, 1]:
+        for n in [0]:
             for l in range(0, self.layers[n].outputsize):
-                print(l)
-                print(self.layers[n + 1])
                 leftsum  = npy.dot(self.layers[n + 1].w[l, :],
                         self.layers[n + 1].delta)
-                rightsum = npy.dot(self.layers[n - 1].output,
-                        self.layers[n].w[l, :])
+                rightsum = npy.dot(self.layers[n].w[l, :], self.layers[n].input)
                 self.layers[n].delta[l] = leftsum * self.layers[n].actiFun(rightsum)
 
     def predictScore(self):
@@ -93,7 +90,7 @@ class MultiLayerPerceptron:
         for n in range(0, len(self.layers)):
             for h in range(0, self.layers[n].inputsize):
                 for l in range(0, self.layers[n].outputsize):
-                    self.layers[n][h, l] = self.eta * self.layers[n].delta[l] * self.layers[n-1].output[h] 
+                    self.layers[n].w[h, l] = self.eta * self.layers[n].delta[l] * self.layers[n-1].output[h] 
 
 """ ------------------------------------------------------------------------"""
 if __name__ == "__main__":
