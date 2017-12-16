@@ -11,14 +11,16 @@ class Layer:
 
         """ constructor """
 
-        self.number     = number                      # identify layer 
-        self.inputsize  = inputsize                     
-        self.outputsize = outputsize                   
-        self.w          = npy.random.rand(self.inputsize, self.outputsize)
-        self.deltaw     = npy.zeros((self.inputsize, self.outputsize))
-        self.input      = npy.array([0] * inputsize)
-        self.output     = npy.array([0] * outputsize)
-        self.delta      = npy.array([0] * outputsize)
+        self.number       = number                      # identify layer 
+        self.inputsize    = inputsize                     
+        self.outputsize   = outputsize                   
+        self.w            = npy.asmatrix(npy.random.rand(self.inputsize,
+            self.outputsize))
+        self.deltaw       = npy.asmatrix(npy.zeros((self.inputsize,
+            self.outputsize)))
+        self.input        = npy.asmatrix(npy.zeros((inputsize, 1)))
+        self.output       = npy.asmatrix((npy.zeros((outputsize, 1))))
+        self.delta        = npy.asmatrix(npy.zeros((outputsize, 1)))
 
     @staticmethod                                   
     def actiFun(vector):
@@ -63,12 +65,12 @@ class MultiLayerPerceptron:
         """ calculate delta's, back-propagating """
        
         self.layers[-1].delta = self.targ - self.layers[-1].output
-        for n in [0]:
-            for l in range(0, self.layers[n].outputsize):
-                leftsum  = npy.dot(self.layers[n + 1].w[l, :],
-                        self.layers[n + 1].delta)
-                rightsum = npy.dot(self.layers[n].w[l, :], self.layers[n].input)
-                self.layers[n].delta[l] = leftsum * self.layers[n].actiFun(rightsum)
+        for n in range(0, len(self.layers) - 1):
+            leftsum  = self.layers[n + 1].w * self.layers[n + 1].delta
+            rightsum = npy.transpose(self.layers[n].input) * self.layers[n].w
+            rightsum = npy.transpose(rightsum)
+            self.layers[n].delta = npy.multiply(leftsum,
+                    self.layers[n].actiFun(rightsum))
 
     def predictScore(self):
 
@@ -88,9 +90,8 @@ class MultiLayerPerceptron:
         """ yeah this updates the weights how did u know """
         
         for n in range(0, len(self.layers)):
-            for h in range(0, self.layers[n].inputsize):
-                for l in range(0, self.layers[n].outputsize):
-                    self.layers[n].w[h, l] = self.eta * self.layers[n].delta[l] * self.layers[n-1].output[h] 
+            self.layers[n].deltaw = self.eta * self.layers[n].delta * npy.transpose(self.layers[n].input)
+        # apply deltaw here
 
 """ ------------------------------------------------------------------------"""
 if __name__ == "__main__":
