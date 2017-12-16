@@ -102,3 +102,7 @@ def generate_position(n_pieces):
 # if __name__ == '__main__':
 #     positions = generate_starting_positions(n=100);
 #     print('bye')
+        
+if __name__ == "__main__":
+    test = "rnbqkbnr/ppp2ppp/3p1p2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    print(fromFen(test))
