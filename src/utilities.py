@@ -79,4 +79,26 @@ def toFen(bitmap):
     fen += ' {} - - 0 1'.format(['w','b'][randint(0,1)])
 
     return fen
-        
+
+def generate_starting_positions(n=100, n_pieces=4):
+    positions = []
+    for _ in range(n):
+        # generate a new position
+        pos = generate_position(n_pieces)
+        while pos in positions: pos = generate_position(n_pieces)
+        positions.append(pos)
+    return positions
+
+def generate_position(n_pieces):
+    pieces = []
+    # Place pieces in non overlapping possitions
+    for _ in range(n_pieces):
+        piece = "{0:b}".format(pow(2,randint(0,63))).zfill(64)
+        while  piece in pieces: piece = "{0:b}".format(pow(2,randint(0,63))).zfill(64)
+        pieces.append(piece)
+    return toFen(list(map(int, list(''.join(pieces)))))
+
+
+# if __name__ == '__main__':
+#     positions = generate_starting_positions(n=100);
+#     print('bye')
