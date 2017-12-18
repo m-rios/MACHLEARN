@@ -13,7 +13,7 @@ def main():
         os.remove(os.path.join(mydir, f))
 
     for i in range(len(history)-1):
-        with open('/Users/mario/Developer/MACHLEARN/results/svg/move_{}.svg'.format(i), 'w') as f:
+        with open('{}move_{}.svg'.format(mydir, i), 'w') as f:
             f.write(history[i])
     print(result)
 
