@@ -73,6 +73,7 @@ def toFen(bitmap):
         if ind % 8 == 7:
             if blank > 0:
                 fen += str(blank)
+            if ind < 63:
             fen+='/'
             blank = 0
     
@@ -80,16 +81,20 @@ def toFen(bitmap):
 
     return fen
 
-def generate_starting_positions(n=100, n_pieces=4):
+def generate_starting_positions(n=100, n_pieces=4, to_file=False):
     positions = []
+    f = open('data/fen_games', 'w')
     for _ in range(n):
         # generate a new position
         pos = generate_position(n_pieces)
         while pos in positions: pos = generate_position(n_pieces)
         positions.append(pos)
+        if to_file:
+            f.write(pos+'\n')
+    f.close()
     return positions
 
-def generate_position(n_pieces):
+def generate_position(n_pieces, to_file=False):
     pieces = []
     # Place pieces in non overlapping possitions
     for _ in range(n_pieces):
