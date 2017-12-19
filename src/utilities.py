@@ -103,6 +103,78 @@ def generate_position(n_pieces, to_file=False):
         pieces.append(piece)
     return toFen(list(map(int, list(''.join(pieces)))))
 
+def extract_features(fen):
+    """extracts features from fen position
+    
+    Global Features:
+        [0] Side to move {0,1} = {b,w}
+        [1:2] Material configuration [N,r] = {0,1} (number of pieces of each type)
+    Piece-Centric Features:
+        [3:10] Piece list and locations [Kexists, Kpos, Nexists, Npos ...]. Exists = {0,1}. Pos = [0,63]
+        [11:14] Mobility of Rook [N,S,W,E] = [0,7]
+    Square-Centric Features:
+        []
+    
+    Arguments:
+        fen {String} -- fen encoding of the board state
+    
+    Returns:
+        [list of int] -- feature representation of the board
+    """
+    
+    metadata = fen.split('/')[7].split(' ')[1:-1]
+    board = parsePieces(fen)
+    
+    # Global features
+    features = []
+    features.append(int(metadata[0] == 'w'))
+    features.append(int(fen.find('N') >= 0))
+    features.append(int(fen.find('r') >= 0))
+    # Piece-Centric features
+    features.append(int(fen.find('K')))
+    features.append(board.find('K'))
+    features.append(features[1])
+    features.append(board.find('N'))
+    features.append(int(fen.find('k')))
+    features.append(board.find('k'))
+    features.append(features[2])
+    features.append(board.find('r'))
+    #W,E mobility of the rook
+    row = int(features[10]/8) #Actual row of the rook
+    square = row * 8
+    w = 0
+    e = 0
+    r_found = False
+    for i in range(square, square+8): #traverse row counting free squares
+        r_found = (board[i] == 'r') or r_found
+        if not r_found:
+            w = (w + (board[i] == '.'))*(board[i] == '.')
+        else:
+            if board[i] == 'r':
+                continue
+            if board[i] != '.' and board[i] != 'r':
+                break
+            e += 1
+    #N,S mobility of the rook
+    column = features[10] % 8
+    n = 0
+    s = 0
+    r_found = False
+    for i in range(column, column+64, 8): #traverse column counting free squares
+        r_found = (board[i] == 'r') or r_found
+        if not r_found:
+            n = (n + (board[i] == '.'))*(board[i] == '.')
+        else:
+            if board[i] == 'r':
+                continue 
+            if board[i] != '.' and board[i] != 'r':
+                break           
+            s += 1
+    features += [n,s,e,w]
+    # Square-Centric features
+
+    return features
+    
 
 # if __name__ == '__main__':
 #     positions = generate_starting_positions(n=100);
