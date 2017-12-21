@@ -1,4 +1,6 @@
 import numpy as npy
+import chess.syzygy
+import chess.uci
 
 from utilities import expandEmpty, parsePieces, findPieces, fromFen
 
@@ -7,17 +9,22 @@ class Layer:
 
     """ a single layer of the multi-layer perceptron """ 
 
-    def __init__(self, number, inputsize = 1, outputsize = 1): 
+    def __init__(self, number, inputsize = 1, outputsize = 1, iniW = None): 
 
         """ constructor """
 
         self.number       = number                      # identify layer 
         self.inputsize    = inputsize                     
         self.outputsize   = outputsize                   
-        self.w            = npy.asmatrix(npy.random.rand(self.inputsize,
-            self.outputsize))
+
+        if iniW == None:
+            self.w        = npy.asmatrix(npy.random.rand(self.inputsize,
+                                                             self.outputsize))
+        else:
+            self.w = iniW
+
         self.deltaw       = npy.asmatrix(npy.zeros((self.inputsize,
-            self.outputsize)))
+                                                    self.outputsize)))
         self.input        = npy.asmatrix(npy.zeros((inputsize, 1)))
         self.output       = npy.asmatrix((npy.zeros((outputsize, 1))))
         self.delta        = npy.asmatrix(npy.zeros((outputsize, 1)))
@@ -41,13 +48,17 @@ class MultiLayerPerceptron:
 
     """ a multilayer perceptron implementation """ 
 
-    def __init__(self, eta, numlayers, inputsizes, outputsizes):
+    def __init__(self, eta, numlayers, inputsizes, outputsizes, wList = None):
 
         """ constructor """ 
 
         self.eta       = eta
-        self.layers    = [Layer(i, inputsizes[i], outputsizes[i])
-                                            for i in range(0, numlayers)] 
+        if wList == None:
+            self.layers = [Layer(i, inputsizes[i], outputsizes[i])
+                                            for i in range(numlayers)] 
+        else:
+            self. layers = [layer(i, inputsizes[i], outputsizes[i], wList[i])
+                                    for i in range(numlayers)]
 
     def train(self, fenboard, score):
 
@@ -121,6 +132,13 @@ class MultiLayerPerceptron:
 
 """ ------------------------------------------------------------------------"""
 if __name__ == "__main__":
+
+    # construct stockfish
+    engine = chess.uci.popen_engine("/home/s1925873/stockfish-8-linux/Linux/stockfish_8_x64")
+    engine.uci()
+    info_handler = chess.uci.InfoHandler()
+    engine.info_handlers.append(info_handler)
+
    
     # construct mlp     
     numlayers = 2
@@ -128,15 +146,22 @@ if __name__ == "__main__":
     outputsizes = [20, 1]
     eta = 1/5 
     mlp = MultiLayerPerceptron(eta, numlayers, inputsizes, outputsizes)
-   
+  
     # read data and train
     data = open("../data/fen_games")
-    size = data.readline()
+    size = int(data.readline())
     trainSize = int(size * 0.8)
     for _ in range(trainSize):
-        line = data.readline()
-        print("training on line {}".format(line))
-        mlp.train(line, 5)          # 5 should be score
+        fen = data.readline()
+        # get stockfish score
+        engine.ucinewgame()
+        engine.position(chess.Board(fen))
+        print(engine.board)
+        engine.go(movetime=1000)
+        score = info_handler.info["score"][1]
+        # training
+        print("training on line {}".format(fen))
+        mlp.train(fen, score)          # 5 should be score
 
     # save weights
     wlist = [layer.w for layer in mlp.layers]
@@ -154,9 +179,17 @@ if __name__ == "__main__":
     # calculate error measure 
     E = 0
     score = 5
-    while fen = data.readline(): 
+    fen = data.readline()
+    epsilon = 0.1
+
+    while fen:
         predictor.setboard(fen)
         calcScore = predictor.predictScore()
         E += abs(score - calcScore)
+        fen = data.readline()
 
     print("total error: {}".format(E))
+
+    # move predict function
+    # introduce proper score
+    # 
