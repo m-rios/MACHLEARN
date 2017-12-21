@@ -84,6 +84,8 @@ def toFen(bitmap):
 def generate_starting_positions(n=100, n_pieces=4, to_file=False):
     positions = []
     f = open('data/fen_games', 'w')
+    if to_file:
+        f.write('{}\n'.format(n))
     for _ in range(n):
         # generate a new position
         pos = generate_position(n_pieces)
