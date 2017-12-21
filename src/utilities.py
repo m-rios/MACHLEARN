@@ -74,7 +74,7 @@ def toFen(bitmap):
             if blank > 0:
                 fen += str(blank)
             if ind < 63:
-            fen+='/'
+                fen+='/'
             blank = 0
     
     fen += ' {} - - 0 1'.format(['w','b'][randint(0,1)])
