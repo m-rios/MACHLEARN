@@ -53,13 +53,19 @@ class MultiLayerPerceptron:
 
         """ train to produce score given board """
 
-        self.board = npy.transpose(npy.asmatrix(fromFen(fenboard)))                  
+        self.setboard(fenboard)
         self.targ = score                               # score from stockfish
         
         self.predictScore()                             # current score
         self.calcDelta()                                # delta errors 
         self.updateDeltaWeights()                       # update rule 
         self.updateWeights()                            # apply updates
+
+    def setboard(self, fenboard):
+
+        """ set the board from fen notation """
+
+        self.board = npy.transpose(npy.asmatrix(fromFen(fenboard)))
 
     def calcDelta(self):
 
@@ -88,6 +94,7 @@ class MultiLayerPerceptron:
             self.layers[n].input  = self.layers[n - 1].output 
             self.layers[n].output = npy.transpose(self.layers[0].actiFun(npy.transpose(self.layers[n].input)
                     * self.layers[n].w))
+        return self.layers[-1].output
 
     def updateDeltaWeights(self):
 
@@ -105,20 +112,51 @@ class MultiLayerPerceptron:
         """ apply deltaw to update w """
 
         print("updating weights...")
+
         for layer in self.layers:
             layer.w += layer.deltaw
             layer.delta = npy.asmatrix(npy.zeros((layer.inputsize,
-            layer.outputsize)))
+                                            layer.outputsize)))
 
 
 """ ------------------------------------------------------------------------"""
 if __name__ == "__main__":
-    test = "rnbqkbnr/ppp2ppp/3p1p2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    # print(fromFen(test))
-    
+   
+    # construct mlp     
     numlayers = 2
     inputsizes = [64 * 4, 20] 
     outputsizes = [20, 1]
     eta = 1/5 
     mlp = MultiLayerPerceptron(eta, numlayers, inputsizes, outputsizes)
-    mlp.train(test, 5)
+   
+    # read data and train
+    data = open("../data/fen_games")
+    size = data.readline()
+    trainSize = int(size * 0.8)
+    for _ in range(trainSize):
+        line = data.readline()
+        print("training on line {}".format(line))
+        mlp.train(line, 5)          # 5 should be score
+
+    # save weights
+    wlist = [layer.w for layer in mlp.layers]
+    filename = "weights.npz"
+    npy.savez(filename, wlist = wlist)
+
+    # read weights
+    npzfile = npy.load(filename)
+    wlist = npzfile['wlist'] 
+
+    predictor = MultiLayerPerceptron(eta, numlayers, inputsizes, outputsizes)
+    for idx, layer in enumerate(predictor.layers):
+        layer.w = wlist[idx]
+
+    # calculate error measure 
+    E = 0
+    score = 5
+    while fen = data.readline(): 
+        predictor.setboard(fen)
+        calcScore = predictor.predictScore()
+        E += abs(score - calcScore)
+
+    print("total error: {}".format(E))
