@@ -1,4 +1,6 @@
 from random import randint
+import chess
+import numpy as np
 
 def expandEmpty(char):
 
@@ -74,7 +76,7 @@ def toFen(bitmap):
             if blank > 0:
                 fen += str(blank)
             if ind < 63:
-            fen+='/'
+                fen+='/'
             blank = 0
     
     fen += ' {} - - 0 1'.format(['w','b'][randint(0,1)])
@@ -172,14 +174,47 @@ def extract_features(fen):
             s += 1
     features += [n,s,e,w]
     # Square-Centric features
-
+    features += attack_defend_maps(fen)
     return features
-    
 
-# if __name__ == '__main__':
-#     positions = generate_starting_positions(n=100);
-#     print('bye')
+
+def attack_defend_maps(fen):
+    _map = []
+    b = chess.Board(fen)
+    for r in range(7,-1,-1):
+        for f in range(8):        
+            s = chess.square(f, r);
+            v = 0 # Initialize to unattacked
+            attackers = b.attackers(b.turn, s)
+            if len(attackers):
+                v = min(map(lambda x: b.piece_at(x).piece_type, attackers))
+            _map.append(v)
+            v = 0 # Initialize to undefended
+            defenders = b.attackers(not b.turn, s)
+            if len(defenders):
+                v = min(map(lambda x: b.piece_at(x).piece_type, defenders))
+            _map.append(v)
+    return _map
+
+if __name__ == '__main__':
+    
+    
+    # features = extract_features('N7/5K2/8/8/8/8/8/3k3r w - - 0 1')
+    # features = extract_features('R7/8/8/7k/8/8/1P6/7K w - - 0 1')
+    features = extract_features('8/1K6/8/8/8/8/8/8 w - - 0 1')
+    
+    ad_maps = features[-129:-1];
+    printable_map = np.reshape(ad_maps, (8,16))
+    # print(printable_map)
+    for row in printable_map:
+        row = row.reshape(8,2)
+        str_row = map(str, row)
+        print(' | '.join(str_row))
+
+    pass
+    # positions = generate_starting_positions(n=100, to_file=True);
+    # print('done')
         
-if __name__ == "__main__":
-    test = "rnbqkbnr/ppp2ppp/3p1p2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    print(fromFen(test))
+# if __name__ == "__main__":
+#     test = "rnbqkbnr/ppp2ppp/3p1p2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#     print(fromFen(test))
