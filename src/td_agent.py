@@ -2,6 +2,7 @@ from agent import Agent
 import tensorflow as tf
 import numpy as np
 from utilities import extract_features
+import chess
 
 class TdAgent( Agent ):
     
@@ -22,9 +23,13 @@ class TdAgent( Agent ):
             'b2': tf.Variable(tf.random_normal([self.n_hidden_2])),
             'out': tf.Variable(tf.random_normal([1]))
         }
+        self.board = chess.Board(state)
+        self.ev = 0
 
-    def evaluate(self):
-        features = extract_features(self.state)
+    def evaluate(self, state=None):
+        if state == None:
+            state = self.board.fen
+        features = extract_features(state)
         X = tf.placeholder("float32", [None, self.n_input])
         graph = self.nn(X)
         init = tf.global_variables_initializer()
@@ -33,6 +38,50 @@ class TdAgent( Agent ):
             sess.run(init)
             v = sess.run(graph, {X: f})
         return v
+    
+    def train(self):
+        asdf - asdf
+        pass
+
+    def evaluate_test(self):
+        self.ev += 1
+        return self.ev
+
+    def alphabeta(self, depth=12, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
+        if depth == 0 or self.board.is_game_over():
+            return ([self.board.fen()], self.evaluate_test())
+
+        if _max:
+            v = float('-Inf')
+            tree = [self.board.fen()]
+            best_subtree = None
+            for move in self.board.legal_moves:
+                self.board.push(move)
+                (subtree, score) = self.alphabeta(depth-1, alpha, beta, False)
+                self.board.pop()
+                if score > v:
+                    v = score
+                    best_subtree = subtree                
+                alpha = max(alpha, v)
+                if beta <= alpha:
+                    break
+            return (tree + best_subtree, v)
+        else:
+            v = float('Inf')
+            tree = [self.board.fen()]
+            best_subtree = None
+            for move in self.board.legal_moves:
+                self.board.push(move)
+                (subtree, score) = self.alphabeta(depth-1, alpha, beta, True)
+                self.board.pop()
+                if score < v:
+                    v = score
+                    best_subtree = subtree                
+                beta = min(beta, v)
+                if beta <= alpha:
+                    break
+            return (tree + best_subtree, v)
+
 
     def next_action(self):
         pass
@@ -101,6 +150,12 @@ class TdAgent( Agent ):
 
 if __name__ == '__main__':
 
+    # agent = TdAgent('N7/5K2/8/8/8/8/8/3r3k w - - 0 1')
+    # for _ in range(10):
+    #     print(agent.evaluate())
+
     agent = TdAgent('N7/5K2/8/8/8/8/8/3r3k w - - 0 1')
-    for _ in range(10):
-        print(agent.evaluate())
+    print('Expanding')
+    (tree, score) = agent.alphabeta(depth=3)
+    print(tree)
+    print(score)
