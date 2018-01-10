@@ -1,5 +1,7 @@
 from random import randint
+import random
 import chess
+import chess.uci
 import numpy as np
 
 def expandEmpty(char):
@@ -41,7 +43,7 @@ def fromFen(fenstring):
 
     return findPieces(parsePieces(fenstring))
 
-def toFen(bitmap):
+def toFen(bitmap, figure='r'):
     """toFen
     
     Convert bit notation to fen notation
@@ -58,7 +60,7 @@ def toFen(bitmap):
     simplified_board[K.index(1)] = 'K'
     simplified_board[k.index(1)] = 'k'
     simplified_board[N.index(1)] = 'N'
-    simplified_board[r.index(1)] = 'r'
+    simplified_board[r.index(1)] = figure
 
     fen = ""
     ind = 0
@@ -83,27 +85,41 @@ def toFen(bitmap):
 
     return fen
 
-def generate_starting_positions(n=100, n_pieces=4, to_file=False):
+def generate_starting_positions(n=100, n_pieces=4, to_file=False, figure='r'):
     positions = []
-    f = open('data/fen_games', 'w')
+    f = open('../data/fen_games', 'w')
     for _ in range(n):
         # generate a new position
-        pos = generate_position(n_pieces)
-        while pos in positions: pos = generate_position(n_pieces)
+        pos = generate_position(n_pieces, figure=figure)
+        while pos in positions: pos = generate_position(n_pieces, figure=figure)
         positions.append(pos)
         if to_file:
             f.write(pos+'\n')
     f.close()
     return positions
 
-def generate_position(n_pieces, to_file=False):
+def generate_position(n_pieces, figure='r'):
     pieces = []
     # Place pieces in non overlapping possitions
     for _ in range(n_pieces):
         piece = "{0:b}".format(pow(2,randint(0,63))).zfill(64)
         while  piece in pieces: piece = "{0:b}".format(pow(2,randint(0,63))).zfill(64)
         pieces.append(piece)
-    return toFen(list(map(int, list(''.join(pieces)))))
+    fen = toFen(list(map(int, list(''.join(pieces)))), figure=figure)
+
+    board = chess.Board(fen)
+
+    while board.is_game_over() or not board.is_valid():
+        pieces = []
+        # Place pieces in non overlapping possitions
+        for _ in range(n_pieces):
+            piece = "{0:b}".format(pow(2,randint(0,63))).zfill(64)
+            while  piece in pieces: piece = "{0:b}".format(pow(2,randint(0,63))).zfill(64)
+            pieces.append(piece)
+        fen = toFen(list(map(int, list(''.join(pieces)))), figure=figure)
+        board = chess.Board(fen)
+    return fen
+
 
 def extract_features(fen):
     """extracts features from fen position

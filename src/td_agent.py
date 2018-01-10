@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 from utilities import extract_features
 import chess
+import random as rnd
 
 class TdAgent( Agent ):
     
@@ -25,23 +26,76 @@ class TdAgent( Agent ):
         }
         self.board = chess.Board(state)
         self.ev = 0
+        self.session = None
 
     def evaluate(self, state=None):
         if state == None:
-            state = self.board.fen
+            state = self.board.fen()
         features = extract_features(state)
         X = tf.placeholder("float32", [None, self.n_input])
         graph = self.nn(X)
-        init = tf.global_variables_initializer()
         f = np.reshape(features,(1,143))
-        with tf.Session() as sess:
-            sess.run(init)
-            v = sess.run(graph, {X: f})
+        v = 0
+        if not self.session:        
+            # init = tf.global_variables_initializer()
+            with tf.Session() as sess:
+                # sess.run(init)
+                v = sess.run(graph, {X: f})
+        else:
+            v = self.session.run(graph, {X: f})
         return v
+
+
+    def trial(self):
+        weights = [self.weights['general'], self.weights['piece_c'], self.weights['square_c'], 
+                self.weights['hidden_2'], self.weights['out'], self.biases['b1'], self.biases['b2'], self.biases['out']]
+        X = tf.placeholder("float32", [None, self.n_input])
+
+        weights2 = tf.trainable_variables()
+
+        gradient = tf.gradients(self.nn(X), weights)
+        return symbolic_grad
+
+    def loss(self, data, search_depth, _lambda, batch_size):
+        errors = []
+        for p in range(batch_size):
+            self.board = chess.Board(data[p])
+            (tree, _) = self.alphabeta(search_depth)
+            
+            for t in range(0,search_depth):
+                # Compute the gradient of the eval function w.r.t. the weights
+                X = tf.placeholder("float32", [None, self.n_input])
+                gradients, _vars = tf.gradients(self.nn(X), tf.trainable_variables())
+                contr = 0
+                for j in range(t, search_depth):
+                    contr += _lambda ** (j - t)
+                dt = self.evaluate(tree[t+1]) - self.evaluate(tree[t])
+            gradient = tf.scalar_mul(contr*dt,tf.convert_to_tensor(gradient))            
+            errors.append(gradient) #THIS MIGHT NOT WORK BECAUSE GRADIENT IS A LIST NOT A TENSOR
+        return tf.add_n(errors)
+        
     
-    def train(self):
-        asdf - asdf
-        pass
+    def train(self, epochs=1000, batch_size=32, search_depth=12, _lambda=0.7):
+
+        # error_sample_size: number of positions used to calculate loss function
+
+        with open('../data/fen_games') as file: # Change path when ran with makefile
+            data = file.readlines()            
+            with tf.Session() as session:
+                self.session = session
+                init = tf.initialize_all_variables()
+                session.run(init)
+                for _ in range(epochs):
+                    errors = self.loss(data, search_depth, _lambda, batch_size)
+                    
+                    std_optimizer = tf.train.GradientDescentOptimizer(1)
+                    loss_grd = std_optimizer.compute_gradients(errors)
+
+                    ada_optimizer = tf.train.AdadeltaOptimizer()
+                    train = ada_optimizer.minimize(errors, grad_loss=loss_grd)
+                    
+                    session.run(train)
+
 
     def evaluate_test(self):
         self.ev += 1
@@ -49,7 +103,7 @@ class TdAgent( Agent ):
 
     def alphabeta(self, depth=12, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
         if depth == 0 or self.board.is_game_over():
-            return ([self.board.fen()], self.evaluate_test())
+            return ([self.board.fen()], self.evaluate())
 
         if _max:
             v = float('-Inf')
@@ -154,8 +208,12 @@ if __name__ == '__main__':
     # for _ in range(10):
     #     print(agent.evaluate())
 
+    # agent = TdAgent('N7/5K2/8/8/8/8/8/3r3k w - - 0 1')
+    # print('Expanding')
+    # (tree, score) = agent.alphabeta(depth=3)
+    # print(tree)
+    # print(score)
+
     agent = TdAgent('N7/5K2/8/8/8/8/8/3r3k w - - 0 1')
-    print('Expanding')
-    (tree, score) = agent.alphabeta(depth=3)
-    print(tree)
-    print(score)
+    agent.train(epochs=2, search_depth=2, batch_size=2)
+    pass
