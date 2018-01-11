@@ -15,8 +15,9 @@ with open('../data/fen_games') as f:
             
             if score < 0:
                 score = -1
-            else if score > 0:
+            elif score > 0:
                 score = 1
-
+            else:
+                score = 0
             label_file.write('{}\n'.format(score))
 

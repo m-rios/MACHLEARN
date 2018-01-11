@@ -26,7 +26,7 @@ def parsePieces(fen):
             parsedfen += expandEmpty(char)
     return parsedfen
 
-def findPieces(parsedfen):
+def findPieces(parsedfen,figure='r'):
 
     """ create a position string for each piece """
 
@@ -34,14 +34,14 @@ def findPieces(parsedfen):
     out[parsedfen.index('K')]             = 1             # white king
     out[parsedfen.index('k') + 64]        = 1             # black king
     out[parsedfen.index('N') + 2 * 64]    = 1             # white knight
-    out[parsedfen.index('r') + 3 * 64]    = 1             # black rook
+    out[parsedfen.index(figure) + 3 * 64]    = 1             # black rook
     return out
 
-def fromFen(fenstring):
+def fromFen(fenstring, figure='r'):
 
     """ convert fen notaton to bit notation """ 
 
-    return findPieces(parsePieces(fenstring))
+    return findPieces(parsePieces(fenstring),figure)
 
 def toFen(bitmap, figure='r'):
     """toFen
@@ -217,19 +217,23 @@ if __name__ == '__main__':
     
     # features = extract_features('N7/5K2/8/8/8/8/8/3k3r w - - 0 1')
     # features = extract_features('R7/8/8/7k/8/8/1P6/7K w - - 0 1')
-    features = extract_features('8/1K6/8/8/8/8/8/8 w - - 0 1')
+    # features = extract_features('8/1K6/8/8/8/8/8/8 w - - 0 1')
     
-    ad_maps = features[-129:-1];
-    printable_map = np.reshape(ad_maps, (8,16))
-    # print(printable_map)
-    for row in printable_map:
-        row = row.reshape(8,2)
-        str_row = map(str, row)
-        print(' | '.join(str_row))
+    # ad_maps = features[-129:-1];
+    # printable_map = np.reshape(ad_maps, (8,16))
+    # # print(printable_map)
+    # for row in printable_map:
+    #     row = row.reshape(8,2)
+    #     str_row = map(str, row)
+    #     print(' | '.join(str_row))
 
     pass
     # positions = generate_starting_positions(n=100, to_file=True);
     # print('done')
+
+    fen = '5k2/8/K7/8/8/2N5/8/b7 b - - 0 1'
+    print(sum(fromFen(fen, figure='b')))
+
         
 # if __name__ == "__main__":
 #     test = "rnbqkbnr/ppp2ppp/3p1p2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
