@@ -22,58 +22,58 @@ biases = {
 def mlp(x):
     hidden =  tf.nn.softmax(tf.add(tf.matmul(x,weights['hidden']),biases['hidden']))
     out = tf.nn.softmax(tf.add(tf.matmul(hidden,weights['out']),biases['out']))
-    
-
-    ret = tf.case({
-                tf.reshape(tf.less(out, tf.convert_to_tensor(0.5)), []): lambda: tf.convert_to_tensor(-1,dtype=tf.float32),
-                tf.reshape(tf.greater(out, tf.convert_to_tensor(0.5)), []): lambda: tf.convert_to_tensor(1,dtype=tf.float32)},
-                default=lambda: out, exclusive=True)
-
+    ret = tf.sign(tf.subtract(out, tf.constant(0.5)))
     return ret
 
 
-X = tf.placeholder("float", [None, n_inputs])
-Y = tf.placeholder("float", [None, n_out])
+X = tf.placeholder("float", shape=[None, n_inputs])
+Y = tf.placeholder("float", shape=[None, n_out])
 
 ev = mlp(X)
 
-loss_op = tf.losses.absolute_difference(labels=Y, predictions=ev)
+# loss_op = tf.losses.absolute_difference(labels=Y, predictions=ev)
+
+loss_op = tf.losses.mean_squared_error(labels=Y, predictions=ev)
 
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.2)
 train_op = optimizer.minimize(loss_op)
 
-init = tf.initialize_all_variables()
-
-with open('../data/fen_games') as f:
-    data = f.readlines()
-
-with open('../data/labels') as f:
-    labels = f.readlines()
-
+init = tf.global_variables_initializer()
 
 errors = []
 
+def prepare_data():
+    with open('../data/fen_games') as f:
+        data = f.readlines()
+
+    with open('../data/labels') as f:
+        labels = f.readlines()
+    
+    x = []
+    y = []
+
+    for idx in range(len(data)):
+        x.append(np.array(u.fromFen(data[idx], figure='b')))
+        y.append(int(labels[idx]))
+    
+    return x, np.array(y).reshape(len(data),1)
+    # return np.array(x), np.random.randn(100,1)
+
+x_batch, y_batch = prepare_data()
+
+
 with tf.Session() as session:
     session.run(init)
-
-    for epoch in range(10):
-        
-        # Get training data
-        batchX_tensors = []
-        batchY_tensors = []
-        for point in r.sample(range(len(data)),batch_size):
-            batchX_tensors.append(np.array(u.fromFen(data[point],figure='b')))
-            batchY_tensors.append(np.array(int(labels[point])))
-        
-        # batchX = tf.train.batch(batchX_tensors, batch_size)
-        # batchY = tf.train.batch(batchY_tensors, batch_size)
-
-            batchX = batchX_tensors
-            batchY = batchY_tensors
-
-        _, cost = session.run([train_op, loss_op], feed_dict={X: batchX,
-                                                            Y: batchY})
+    for epoch in range(100):
+        cost = session.run([train_op, loss_op], feed_dict={
+                                                        X: x_batch,
+                                                        Y: y_batch
+                                                        })
         errors.append(cost)
+print(errors)
+
+
+
 
 print(errors)                                                                
         
