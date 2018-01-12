@@ -2,78 +2,139 @@ import tensorflow as tf
 import random as r
 import utilities as u
 import numpy as np
+from datetime import datetime
 
-n_inputs = 64*4
-n_hidden = 32
-n_out = 1
+class Mlp( object ):
+    def __init__(self, session=None, session_path=None):
+       
+        self.n_inputs = 64*4
+        self.n_hidden = 32
+        self.n_out = 1
 
-batch_size = 50
+        self.batch_size = 256
 
-weights = {
-    'hidden': tf.Variable(tf.random_normal([n_inputs, n_hidden])),
-    'out': tf.Variable(tf.random_normal([n_hidden, n_out]))
-}
+        self.weights = {
+            'hidden': tf.Variable(tf.random_normal([self.n_inputs, self.n_hidden])),
+            'out': tf.Variable(tf.random_normal([self.n_hidden, self.n_out]))
+        }
 
-biases = {
-    'hidden': tf.Variable(tf.random_normal([n_hidden])),
-    'out': tf.Variable(tf.random_normal([n_out])),
-}
+        self.biases = {
+            'hidden': tf.Variable(tf.random_normal([self.n_hidden])),
+            'out': tf.Variable(tf.random_normal([self.n_out])),
+        }
 
-def mlp(x):
-    hidden =  tf.nn.softmax(tf.add(tf.matmul(x,weights['hidden']),biases['hidden']))
-    out = tf.nn.softmax(tf.add(tf.matmul(hidden,weights['out']),biases['out']))
-    ret = tf.sign(tf.subtract(out, tf.constant(0.5)))
-    return ret
+        self.X = tf.placeholder("float", shape=[None, self.n_inputs])
+        self.Y = tf.placeholder("float", shape=[None, self.n_out])
 
+        self.ev = self.mlp(self.X)
 
-X = tf.placeholder("float", shape=[None, n_inputs])
-Y = tf.placeholder("float", shape=[None, n_out])
+        self.loss_op = tf.losses.mean_squared_error(labels=self.Y, predictions=self.ev)
 
-ev = mlp(X)
+        self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.02)
+        self.train_op = self.optimizer.minimize(self.loss_op)
 
-# loss_op = tf.losses.absolute_difference(labels=Y, predictions=ev)
+        self.init = tf.global_variables_initializer()
 
-loss_op = tf.losses.mean_squared_error(labels=Y, predictions=ev)
+        self.must_cleanup = True
 
-optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.2)
-train_op = optimizer.minimize(loss_op)
-
-init = tf.global_variables_initializer()
-
-errors = []
-
-def prepare_data():
-    with open('../data/fen_games') as f:
-        data = f.readlines()
-
-    with open('../data/labels') as f:
-        labels = f.readlines()
-    
-    x = []
-    y = []
-
-    for idx in range(len(data)):
-        x.append(np.array(u.fromFen(data[idx], figure='b')))
-        y.append(int(labels[idx]))
-    
-    return x, np.array(y).reshape(len(data),1)
-    # return np.array(x), np.random.randn(100,1)
-
-x_batch, y_batch = prepare_data()
-
-
-with tf.Session() as session:
-    session.run(init)
-    for epoch in range(100):
-        cost = session.run([train_op, loss_op], feed_dict={
-                                                        X: x_batch,
-                                                        Y: y_batch
-                                                        })
-        errors.append(cost)
-print(errors)
-
-
-
-
-print(errors)                                                                
+        self.session = tf.Session()
+        self.session.run(self.init)
         
+        self.saver = tf.train.Saver()
+
+        if session is not None:
+            self.must_cleanup = False
+            self.session = session
+        elif session_path is not None:
+            self.saver.restore(self.session, session_path)
+
+
+    def __del__(self):
+        if self.must_cleanup:
+            self.session.close()
+
+
+    def mlp(self, x):
+        hidden =  tf.nn.softmax(tf.add(tf.matmul(x,self.weights['hidden']),self.biases['hidden']))
+        out = tf.nn.softmax(tf.add(tf.matmul(hidden,self.weights['out']),self.biases['out']))
+        ret = tf.sign(tf.subtract(out, tf.constant(0.5)))
+        return ret
+
+
+    def train(self):
+        save_path = '../data/mlp_{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
+        errors = []
+
+        x, y = Mlp.prepare_data()
+        
+        epoch = 0
+
+        for e in range(100000):
+
+            x_batch = r.sample(x, self.batch_size)
+            y_batch = r.sample(y, self.batch_size)
+            _, cost = self.session.run([self.train_op, self.loss_op], feed_dict={
+                                                            self.X: x_batch,
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                            })
+            errors.append(cost)
+            epoch += 1
+
+            if not (epoch % 100):
+                self.saver.save(self.session, save_path)
+        print(errors)
+
+
+    def evaluate(self, fen, figure='b'):
+        x = u.fromFen(fen,figure)
+        return self.session.run(self.ev, feed_dict={self.X: np.array(x).reshape(1,256)})
+
+
+    @staticmethod
+    def prepare_data():
+        with open('../data/fen_games') as f:
+            data = f.readlines()
+
+        with open('../data/labels') as f:
+            labels = f.readlines()
+        
+        x = []
+        y = []
+
+        for idx in range(len(data)):
+            x.append(np.array(u.fromFen(data[idx], figure='b')))
+            y.append(int(labels[idx]))
+        
+        return x, y
+
+
+def test2():
+    model = Mlp(session_path='../data/model2018-01-12_19:13:54.ckpt')
+
+    with open('../data/fen_games') as f:
+        with open('../data/labels') as fl:
+            label = fl.readline()
+            fen = f.readline()
+    print('board: {}'.format(fen))
+    print('label: {}'.format(label))
+    print('eval: {}'.format(model.evaluate(fen)))
+
+def test3():
+    model = Mlp()
+
+    with open('../data/fen_games') as f:
+        with open('../data/labels') as fl:
+            label = fl.readline()
+            fen = f.readline()
+    print('board: {}'.format(fen))
+    print('label: {}'.format(label))
+    print('eval: {}'.format(model.evaluate(fen)))
+
+def test1():
+    model = Mlp()
+    model.train()
+
+if __name__ == '__main__':
+    test2()
+
+    
