@@ -3,10 +3,23 @@ import random as r
 import utilities as u
 import numpy as np
 from datetime import datetime
+import os
+import sys
 
 class Mlp( object ):
-    def __init__(self, session=None, session_path=None):
+    def __init__(self, session=None, session_path=None, wd=None):
        
+        self.wd = wd
+        if self.wd is None:
+            self.wd = os.getcwd()
+        
+        if not os.path.exists(wd):
+            os.makedirs(self.wd)
+        if not os.path.exists(wd+'/datasets'):
+            os.makedirs(self.wd+'/datasets')
+        if not os.path.exists(wd+'/learnt'):
+            os.makedirs(self.wd+'/learnt')    
+
         self.n_inputs = 64*4
         self.n_hidden = 32
         self.n_out = 1
@@ -62,14 +75,15 @@ class Mlp( object ):
 
 
     def train(self):
-        save_path = '../data/mlp_{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
+        save_path = self.wd+'/learnt/mlp_{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
         errors = []
 
-        x, y = Mlp.prepare_data()
+        x, y = Mlp.prepare_data(self.wd)
         
         epoch = 0
 
-        for e in range(100000):
+        for e in range(1000):
+        # for e in range(100000):
 
             x_batch = r.sample(x, self.batch_size)
             y_batch = r.sample(y, self.batch_size)
@@ -91,17 +105,18 @@ class Mlp( object ):
 
 
     @staticmethod
-    def prepare_data():
-        with open('../data/fen_games') as f:
+    def prepare_data(wd):
+        with open(wd+'/datasets/fen_games') as f:
             data = f.readlines()
 
-        with open('../data/labels') as f:
+        with open(wd+'/datasets/labels') as f:
             labels = f.readlines()
         
         x = []
         y = []
 
-        for idx in range(len(data)):
+        # for idx in range(len(data)):
+        for idx in range(100):
             x.append(np.array(u.fromFen(data[idx], figure='b')))
             y.append(int(labels[idx]))
         
@@ -119,22 +134,19 @@ def test2():
     print('label: {}'.format(label))
     print('eval: {}'.format(model.evaluate(fen)))
 
-def test3():
-    model = Mlp()
-
-    with open('../data/fen_games') as f:
-        with open('../data/labels') as fl:
-            label = fl.readline()
-            fen = f.readline()
-    print('board: {}'.format(fen))
-    print('label: {}'.format(label))
-    print('eval: {}'.format(model.evaluate(fen)))
-
 def test1():
     model = Mlp()
     model.train()
 
 if __name__ == '__main__':
-    test2()
+    
+    wd = None
+
+    if len(sys.argv) > 1:
+        wd = sys.argv[1]
+    
+    model = Mlp(wd=wd)
+
+    model.train()
 
     
