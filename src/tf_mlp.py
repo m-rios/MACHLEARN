@@ -24,7 +24,7 @@ class Mlp( object ):
         self.n_hidden = 32
         self.n_out = 1
 
-        self.batch_size = 256
+        self.batch_size = 10
 
         self.weights = {
             'hidden': tf.Variable(tf.random_normal([self.n_inputs, self.n_hidden])),
@@ -45,6 +45,10 @@ class Mlp( object ):
 
         self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.02)
         self.train_op = self.optimizer.minimize(self.loss_op)
+
+        # so that this calculates the evlauation of the MLP after the training for that step has been done 
+        self.eval_after = self.mlp(self.X)
+
 
         self.init = tf.global_variables_initializer()
 
@@ -79,24 +83,43 @@ class Mlp( object ):
         errors = []
 
         x, y = Mlp.prepare_data(self.wd)
-        
+
+        split = int(0.8*len(x))
+        x_batch_train = x[0: split]
+        y_batch_train = y[0: split]
+
+        x_batch_test = x[split:len(x)]
+        y_batch_test = y[split:len(y)]
+
+        train_error = []
+        test_error = []
+
         epoch = 0
 
-        for e in range(1000):
+        for e in range(50):
         # for e in range(100000):
 
-            x_batch = r.sample(x, self.batch_size)
-            y_batch = r.sample(y, self.batch_size)
-            _, cost = self.session.run([self.train_op, self.loss_op], feed_dict={
+            x_batch, y_batch = zip(*r.sample(list(zip(x_batch_train, y_batch_train)), self.batch_size))
+
+            eval_train, _ , error_train = self.session.run([self.eval_after, self.train_op, self.loss_op], feed_dict={
                                                             self.X: x_batch,
                                                             self.Y: np.array(y_batch).reshape(self.batch_size,1)
-                                                            })
-            errors.append(cost)
-            epoch += 1
+                                                           })       
 
+            x_batch, y_batch = zip(*r.sample(list(zip(x_batch_test, y_batch_test)), self.batch_size))
+
+            _, error_test = self.session.run([self.ev, self.loss_op], feed_dict={
+                                                            self.X: x_batch,
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                           })
+
+            train_error.append(error_train)
+            test_error.append(error_test)
+            epoch += 1
+            
             if not (epoch % 100):
                 self.saver.save(self.session, save_path)
-        print(errors)
+        print(train_error)
 
 
     def evaluate(self, fen, figure='b'):
@@ -145,8 +168,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         wd = sys.argv[1]
     
-    model = Mlp(wd=wd)
+    model = Mlp(wd='../data')
 
     model.train()
 
-    
