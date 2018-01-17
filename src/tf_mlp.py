@@ -24,14 +24,12 @@ class Mlp( object ):
         self.n_hidden = 32
         self.n_out = 1
 
-        self.batch_size = 10
+        self.batch_size = 256
 
         self.weights = {
             'hidden': tf.Variable(tf.random_normal([self.n_inputs, self.n_hidden])),
             'out': tf.Variable(tf.random_normal([self.n_hidden, self.n_out]))
-        #   'hidden': tf.Variable(tf.random_normal([self.n_inputs, self.n_hidden]), name = "hidden"),
-        #   'out': tf.Variable(tf.random_normal([self.n_hidden, self.n_out]), name = "out")
-        }
+         }
 
         self.biases = {
             'hidden': tf.Variable(tf.random_normal([self.n_hidden])),
@@ -48,9 +46,16 @@ class Mlp( object ):
         self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.02)
         self.train_op = self.optimizer.minimize(self.loss_op)
 
-        # so that this calculates the evlauation of the MLP after the training for that step has been done 
-        self.eval_after = self.mlp(self.X)
 
+        # to check accuracy 
+        self.correct_prediction = tf.equal(self.ev, self.Y)
+        self.accuracy_test= tf.reduce_mean(tf.cast(self.correct_prediction, tf.float32))
+        
+        self.accuracy_train = tf.reduce_mean(tf.cast(self.correct_prediction, tf.float32))
+
+        # summary. Need to differentiate between test and training..
+        self.summary_train = tf.summary.scalar("accuracy train", self.accuracy_train)
+        self.summary_test = tf.summary.scalar("accuracy test", self.accuracy_test)
 
         self.init = tf.global_variables_initializer()
 
@@ -95,33 +100,52 @@ class Mlp( object ):
 
         train_error = []
         test_error = []
+        train_acc =[]
+        test_acc = []
 
         epoch = 0
 
-        for e in range(50):
+        #should i put a self here ?
+        #merged_summary = tf.summary.merge_all()
+        writer = tf.summary.FileWriter("/Users/vashisthdalmia/Documents/GitHub/MACHLEARN/data/summary")
+        
+
+        for e in range(10000):
         # for e in range(100000):
 
             x_batch, y_batch = zip(*r.sample(list(zip(x_batch_train, y_batch_train)), self.batch_size))
 
-            eval_train, _ , error_train = self.session.run([self.eval_after, self.train_op, self.loss_op], feed_dict={
+            acc1, eval_train, _ , error_train = self.session.run([self.accuracy_train, self.ev, self.train_op, self.loss_op], feed_dict={
                                                             self.X: x_batch,
                                                             self.Y: np.array(y_batch).reshape(self.batch_size,1)
                                                            })       
+            s = self.session.run(self.summary_train, feed_dict={
+                                                            self.X: x_batch,
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                           })
+            writer.add_summary(s,e)
 
-            x_batch, y_batch = zip(*r.sample(list(zip(x_batch_test, y_batch_test)), self.batch_size))
-
-            _, error_test = self.session.run([self.ev, self.loss_op], feed_dict={
+            x_batch, y_batch = zip(*r.sample(list(zip(x_batch_test, y_batch_test)), self.batch_size))           
+            acc2,error_test = self.session.run([self.accuracy_test, self.loss_op], feed_dict={
                                                             self.X: x_batch,
                                                             self.Y: np.array(y_batch).reshape(self.batch_size,1)
                                                            })
 
+            s = self.session.run(self.summary_test, feed_dict={
+                                                            self.X: x_batch,
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                           })
+            writer.add_summary(s,e)
+
+            train_acc.append(acc1)
+            test_acc.append(acc2)
             train_error.append(error_train)
             test_error.append(error_test)
             epoch += 1
             
             if not (epoch % 100):
                 self.saver.save(self.session, save_path)
-        print(train_error)
+        print(train_acc)
 
 
     def evaluate(self, fen, figure='b'):
@@ -174,3 +198,12 @@ if __name__ == '__main__':
 
     model.train()
 
+
+    #tf.summary.scalar() #to get nice graphs and so
+
+   # tf.summary.histogram() # maybe use for weights 
+
+   # tf.summary.tensor() #under development 
+
+   # tf.summary.scalar("cross-entropy", xent)
+   # 9:51, 10:29.
