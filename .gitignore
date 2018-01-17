@@ -361,3 +361,11 @@ results/svg/*.svg
 
 # End of https://www.gitignore.io/api/macos,latex,python
 
+
+src/agent_base\.py
+
+src/mlp_agent\.py
+
+src/td_leaf_example\.py
+
+src/trial\.py
