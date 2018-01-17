@@ -168,6 +168,7 @@ def extract_features(fen):
     c = col
     # north east mobility of bishop
     while(r <= 8 and c <= 8):
+        i = 8*r +c
         if board[i]=='.':
             ne +=1 
         else:
@@ -179,6 +180,7 @@ def extract_features(fen):
     c = col
     # north west mobility of bishop
     while( r <=8 and c >= 0):
+        i = 8*r +c
         if board[i]=='.':
             nw +=1 
         else:
@@ -190,6 +192,7 @@ def extract_features(fen):
     c = col
     # south east mobility of bishop
     while(r >= 0 and c <= 8):
+        i = 8*r +c
         if board[i]=='.':
             se +=1 
         else:
@@ -201,6 +204,7 @@ def extract_features(fen):
     c = col
     # south west mobility of bishop
     while( r >= 0 and c >= 0):
+        i = 8*r +c
         if board[i]=='.':
             nw +=1 
         else:
@@ -257,6 +261,8 @@ if __name__ == '__main__':
     # print('done')
 
     fen = '5k2/8/K7/8/8/2N5/8/b7 b - - 0 1'
+    #features = extract_features(fen)
+    #print(features)
     print(sum(fromFen(fen, figure='b')))
 
         
