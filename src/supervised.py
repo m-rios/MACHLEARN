@@ -54,6 +54,7 @@ class SupervisedLearning( Agent ):
         # summary. Need to differentiate between test and training..
         self.summary_train = tf.summary.scalar("accuracy train", self.accuracy_train)
         self.summary_test = tf.summary.scalar("accuracy test", self.accuracy_test)
+        self.summary_loss = tf.summary.scalar("accuracy test", self.loss_op)
 
         self.init = tf.global_variables_initializer()
 
@@ -116,7 +117,13 @@ class SupervisedLearning( Agent ):
                                                             self.X: x_batch,
                                                             self.Y: np.array(y_batch).reshape(self.batch_size,1)
                                                            })
-            writer.add_summary(s,e)
+            writer.add_summary(s,e))
+
+            s = self.session.run(self.summary_loss, feed_dict={
+                                                            self.X: x_batch,
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                           })
+            writer.add_summary(s,e))
 
             train_acc.append(acc1)
             test_acc.append(acc2)
@@ -128,7 +135,7 @@ class SupervisedLearning( Agent ):
                 self.saver.save(self.session, save_file_name)
                 writer.flush()
 
-            if not (epoch % 1):
+            if not (epoch % 10000):
                 self.saver.save(self.session, save_file_name)
                 wins, losses, draws = benchmark(self, RandomPlayer(), [u.toFen(list(_state), figure='b') for _state in r.sample(x_batch_test, 100)])
                 summary=tf.Summary()

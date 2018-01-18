@@ -202,6 +202,8 @@ class TemporalDifference( Agent ):
         errors = []
     
         epoch = 0
+        
+        writer = tf.summary.FileWriter(self.save_path, filename_suffix=datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
 
         for idx in range(len(fens)):
             
@@ -221,6 +223,12 @@ class TemporalDifference( Agent ):
             if not (epoch % 1000):
                 self.saver.save(self.session, self.save_path)
                 wins, loss, draws = benchmark(self, RandomPlayer(), rnd.sample(fens, 100))
+                summary=tf.Summary()
+                summary.value.add(tag='wins', simple_value = wins)
+                summary.value.add(tag='losses', simple_value = losses)
+                summary.value.add(tag='draws', simple_value = draws)
+                writer.add_summary(summary, e)
+                writer.flush()
 
         print(errors)
 
