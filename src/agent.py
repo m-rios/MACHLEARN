@@ -5,7 +5,7 @@ class Agent( object ):
     train the algorithms.
     """
 
-    def __init__(self, state):
+    def __init__(self, state=None, fen=None):
         """Constructor
         
         Initializes the Agent. This can be extended by child classes if the algorithms requires
@@ -17,8 +17,7 @@ class Agent( object ):
         """
         
         self.state = state # Initial representation of the board state.
-        self.reward = 0
     
-    def next_action(self):
+    def next_action(self, board):
         raise NotImplementedError
 

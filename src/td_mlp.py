@@ -1,6 +1,8 @@
+from agent import Agent
 import tensorflow as tf
 import random as rnd
 import utilities as u
+from benchmarker import benchmark
 import numpy as np
 from datetime import datetime
 import os
@@ -8,9 +10,9 @@ import sys
 import chess
 import time
 
-class TdMlp( object ):
+class TdMlp( Agebt ):
     def __init__(self, state=None, session=None, session_path=None, wd=None):
-       
+        super()
         self.wd = wd
         if self.wd is None:
             self.wd = os.getcwd()
@@ -67,7 +69,7 @@ class TdMlp( object ):
         self.session = tf.Session()
         self.session.run(self.init)
         
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(max_to_keep=0)
 
         if session is not None:
             # self.must_cleanup = False
@@ -134,6 +136,10 @@ class TdMlp( object ):
         
         return delta_W
     
+    def next_action(self, board):
+        _, move, _ = self.choose_move(board)
+        return move
+
     def choose_move(self, board):
         
         wins = []
@@ -141,10 +147,11 @@ class TdMlp( object ):
         draws = []
         
         for move in board.legal_moves:
+            board.push(move)
+
             features = np.array(u.extract_features(board.fen())).reshape((1,143))
             score = self.session.run(self.ev, feed_dict={self.X: features})
             
-            board.push(move)
             if score == 0:
                 draws.append((board.fen(), move))
             elif board.turn:
@@ -168,59 +175,6 @@ class TdMlp( object ):
             return (*rnd.choice(draws), 0)
         else:
             return (*rnd.choice(losses), -1 if board.turn else 1)
-
-
-    # def test_play(self):
-
-    #     board = chess.Board('5k2/8/K7/8/8/2N5/8/r7 b - - 0 1')
-    #     moves_played = 0
-
-    #     st = time.time()
-
-    #     scores = []
-
-    #     while not board.is_game_over():
-            
-    #         wins = []
-    #         losses = []
-    #         draws = []
-            
-    #         #Very unelegant way of populating the lists above for current board state
-    #         for move in board.legal_moves:
-    #             features = np.array(u.extract_features(board.fen())).reshape((1,143))
-    #             score = self.session.run(self.ev, feed_dict={self.X: features})
-    #             scores.append(score)
-    #             if score == 0:
-    #                 draws.append(move)
-    #             elif board.turn:
-    #                 if score == 1:
-    #                     wins.append(move)
-    #                 else:
-    #                     losses.append(move)
-    #             else:
-    #                 if score == -1:
-    #                     wins.append(move)
-    #                 else:
-    #                     losses.append(move)
-                    
-            
-    #         #Make sure we have at least one candidate move
-    #         assert(wins or losses or draws)
-
-    #         if wins:
-    #             best_move = rnd.choice(wins)
-    #         elif draws:
-    #             best_move = rnd.choice(draws)
-    #         else:
-    #             best_move = rnd.choice(losses)
-            
-    #         board.push(best_move)
-            
-    #         moves_played += 1
-    #     et = time.time()
-    #     print(scores)
-    #     print('{} moves played in {} seconds'.format(moves_played, et-st))
-
 
 
     def alphabeta(self, board, depth=12, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
@@ -269,9 +223,7 @@ class TdMlp( object ):
     
         epoch = 0
 
-        st = time.time()
-
-        for idx in range(10):
+        for idx in range(len(fens)):
             
             fen = fens[idx]
 
@@ -281,29 +233,16 @@ class TdMlp( object ):
 
             print('gradient {} computed'.format(idx))
 
-            self.session.run(self.apply_grads, feed_dict={grad_: grad 
+            self.session.run(self.apply_grads, feed_dict={grad_: -grad 
                                                                     for grad_, grad in zip(self.grads_s, grads) })
 
             epoch += 1
 
-            if not (epoch % 100):
+            if not (epoch % 1000):
                 self.saver.save(self.session, save_path)
-        
-        et = time.time()
-
-        print('time: {}'.format(et - st))
+                wins, loss, draws = benchmark(self, RandomAgent(), rnd.sample(fens, 100))
 
         print(errors)
-
-
-    def evaluate(self, fen=None, figure='b'):
-
-        if fen == None:
-            fen = self.board.fen()
-        features = extract_features(fen)
-        
-        v = self.session.run(self.ev, {X: f})
-        return v
 
 
 if __name__ == '__main__':
