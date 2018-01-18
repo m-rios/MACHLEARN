@@ -75,24 +75,15 @@ class Mlp( object ):
 
         self.init = tf.global_variables_initializer()
 
-        self.must_cleanup = True
-
         self.session = tf.Session()
         self.session.run(self.init)
         
         self.saver = tf.train.Saver()
 
         if session is not None:
-            self.must_cleanup = False
             self.session = session
         elif session_path is not None:
             self.saver.restore(self.session, session_path)
-
-
-    def __del__(self):
-        if self.must_cleanup:
-            self.session.close()
-
 
 
     def new_weights(self, shape):

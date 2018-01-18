@@ -1,4 +1,6 @@
 from agent import Agent
+from mlp_features import MlpFeatures
+from cnn import CNN
 import tensorflow as tf
 import random as rnd
 import utilities as u
@@ -9,58 +11,44 @@ import os
 import sys
 import chess
 import time
+import argparse
 
-class TdMlp( Agebt ):
-    def __init__(self, state=None, session=None, session_path=None, wd=None):
+class TemporalDifference( Agent ):
+    def __init__(self, model, state=None, session=None, session_path=None, wd=None, session_name=None):
         super()
         self.wd = wd
+        self.session_name = session_name
         if self.wd is None:
             self.wd = os.getcwd()
+        if self.session_name is None:
+            self.session_name = 'RL'
         
+        self.model = model
+
+        self.save_path = self.wd+'/learnt/'+self.session_name+'/'
+
         if not os.path.exists(wd):
             os.makedirs(self.wd)
-        if not os.path.exists(wd+'/datasets'):
-            os.makedirs(self.wd+'/datasets')
-        if not os.path.exists(wd+'/learnt'):
-            os.makedirs(self.wd+'/learnt')    
-
-        self.n_general = 3; self.n_piece_c = 12; self.n_square_c = 128
-        self.n_input = self.n_general + self.n_piece_c + self.n_square_c
-        self.n_hidden_2 = 9
+        if not os.path.exists(self.wd+'/datasets/'):
+            os.makedirs(self.wd+'/datasets/')
+        if not os.path.exists(self.save_path):
+            os.makedirs(self.save_path) 
 
         self.batch_size = 256
-
-        self.weights = {
-            'general': tf.Variable(tf.random_normal([self.n_general, self.n_general])),
-            'piece_c': tf.Variable(tf.random_normal([self.n_piece_c, self.n_piece_c])),
-            'square_c': tf.Variable(tf.random_normal([self.n_square_c, self.n_square_c])),
-            'hidden_2': tf.Variable(tf.random_normal([self.n_input, self.n_hidden_2])),
-            'out': tf.Variable(tf.random_normal([self.n_hidden_2, 1]))
-        }
-        self.biases = {
-            'b1': tf.Variable(tf.random_normal([self.n_input])),
-            'b2': tf.Variable(tf.random_normal([self.n_hidden_2])),
-            'out': tf.Variable(tf.random_normal([1]))
-        }
         
-        # if state is None:
-        #     self.board = chess.Board()        
-        # else:
-        #     self.board = chess.Board(state)
+        self.X = model.X
+        self.Y = tf.placeholder("float", shape=[None, 1])
         
         self.session = None
 
-        self.X = tf.placeholder("float", shape=[None, self.n_input])
-        self.Y = tf.placeholder("float", shape=[None, 1])
+        self.ev = model.ev
 
-        self.ev = self.nn(self.X)
-
-        self.grads = tf.gradients(self.ev, tf.trainable_variables())
+        self.grads = tf.gradients(self.ev, self.model.trainables)
 
         self.optimizer = tf.train.AdamOptimizer()
         
-        self.grads_s = [tf.placeholder(tf.float32, shape=tvar.get_shape()) for tvar in tf.trainable_variables()]
-        self.apply_grads = self.optimizer.apply_gradients(zip(self.grads_s, tf.trainable_variables()))
+        self.grads_s = [tf.placeholder(tf.float32, shape=tvar.get_shape()) for tvar in self.model.trainables]
+        self.apply_grads = self.optimizer.apply_gradients(zip(self.grads_s, self.model.trainables))
 
         self.init = tf.global_variables_initializer()
 
@@ -78,31 +66,10 @@ class TdMlp( Agebt ):
             self.saver.restore(self.session, session_path)
 
 
-    # def __del__(self):
-    #     if self.must_cleanup:
-    #         self.session.close()
-
-
-    def nn(self, x):
-        # Locally connected layers
-        general_i = tf.gather(x,tf.convert_to_tensor(list(range(self.n_general)), dtype=tf.int32),axis=1)
-        piece_i = tf.gather(x,tf.convert_to_tensor(list(range(self.n_general,self.n_general+self.n_piece_c)), dtype=tf.int32), axis=1)
-        square_i = tf.gather(x,tf.convert_to_tensor(list(range(self.n_general+self.n_piece_c, self.n_general + self.n_piece_c + self.n_square_c)), dtype=tf.int32), axis=1)
-        general = tf.matmul(general_i, self.weights['general'])
-        piece_c = tf.matmul(piece_i, self.weights['piece_c'])
-        square_c = tf.matmul(square_i, self.weights['square_c'])
-        hidden_1 = tf.nn.relu(tf.add(tf.concat([general, piece_c, square_c], 1), self.biases['b1']))
-        # Fully connected layer
-        hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, self.weights['hidden_2']), self.biases['b2']))
-        # Output layer
-        out = tf.tanh(tf.add(tf.matmul(hidden_2, self.weights['out']), self.biases['out']))
-        return out
-
-    
     def compute_gradients(self, root, _lambda=0.7, depth=6):
         
         # initialise the step in the trainable parameters to be passed to the optimizer
-        delta_W = [np.zeros((trainable.shape)) for trainable in tf.trainable_variables()]
+        delta_W = [np.zeros((trainable.shape)) for trainable in self.model.trainables]
         
         board = chess.Board(root)
         states = []
@@ -213,7 +180,7 @@ class TdMlp( Agebt ):
             return (tree + best_subtree, v)
 
     def train(self):
-        save_path = self.wd+'/learnt/mlp_{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
+        save_file_name = self.save_path+'{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
         
         fens_path = self.wd + '/datasets/fen_games'
         with open(fens_path,'r') as fen_file:
@@ -247,21 +214,24 @@ class TdMlp( Agebt ):
 
 if __name__ == '__main__':
     
-    wd = '../data/'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--directory', default='../data')
+    parser.add_argument('-n', '--name_session', default='SL_MLP')
+    parser.add_argument('-m', '--model')
 
-    if len(sys.argv) > 1:
-        wd = sys.argv[1]
+    args = parser.parse_args()
+
+    wd = args.directory
+    sn = args.name_session
+
+    if args.model == 'mlp':
+        model = MlpFeatures()
+    elif args.model == 'cnn':
+        model = CNN()
+    else:
+        print('Model {} not found'.format(args.model))
+        quit()
     
-    model = TdMlp(wd=wd)
+    model = TemporalDifference(model, wd=wd, session_name=sn)
 
     model.train()
-
-    # model.test_play()
-
-    # a = [np.zeros(1), np.zeros(1), np.zeros(1)]
-    # b = [np.ones(1) * h for h in range(1,4)]
-
-    # for da, db in zip(a,b):
-    #     da += db
-    #     pass
-    # pass

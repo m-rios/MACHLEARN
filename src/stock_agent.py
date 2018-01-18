@@ -10,19 +10,17 @@ class StockAgent( Agent ):
     """
 
 
-    def __init__(self, state, movetime):
+    def __init__(self, state=None, depth=20):
         super(StockAgent, self).__init__(state)
-        self.board = chess.Board(state)
         self.handler = chess.uci.InfoHandler()
         self.engine = chess.uci.popen_engine("stockfish")
-        self.movetime = movetime
+        self.depth = depth
 
 
-    def next_action(self):
+    def next_action(self, board):
         # Reinitialize Stockfish with new State. This might have to be modified 
         # once we settle on a representation system other than moves history
-        self.board = chess.Board(self.state)
-        self.engine.position(self.board)
-        (move, _) = self.engine.go(movetime=self.movetime)
+        self.engine.position(board)
+        (move, _) = self.engine.go(depth=self.depth)
         return move
 
