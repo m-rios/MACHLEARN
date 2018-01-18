@@ -98,13 +98,12 @@ class TemporalDifference( Agent ):
             # Inner loop
             for j in range(t, N-1):
                 discount_factor += _lambda ** (j-t)
-            state = np.array(u.extract_features(states[t])).reshape((1,143))
+            state = states[t]
             if self.td_leaf:
                 current_board = chess.Board(states[t])
-                state = self.alphabeta(current_board, _max=current_board.turn)
-                state = self.convert_input(state)
+                state, _ = self.alphabeta(current_board, _max=current_board.turn)
             # Compute the gradient at the current state
-            grads = self.session.run(self.grads, feed_dict={self.X: state})
+            grads = self.session.run(self.grads, feed_dict={self.X: self.convert_input(state)})
             # Increment total gradient for all variables
             for dW, grad in zip(delta_W, grads):
                 dW += grad
@@ -124,7 +123,7 @@ class TemporalDifference( Agent ):
         for move in board.legal_moves:
             board.push(move)
 
-            features = np.array(u.extract_features(board.fen())).reshape((1,143))
+            features = self.convert_input(board.fen())
             score = self.session.run(self.ev, feed_dict={self.X: features})
             
             if score == 0:
@@ -152,7 +151,7 @@ class TemporalDifference( Agent ):
             return (*rnd.choice(losses), -1 if board.turn else 1)
 
 
-    def alphabeta(self, board, depth=6, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
+    def alphabeta(self, board, depth=4, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
         if depth == 0 or board.is_game_over():
             return (board.fen(), self.session.run(self.ev, feed_dict={self.X: self.convert_input(board.fen())}))
 
@@ -161,7 +160,7 @@ class TemporalDifference( Agent ):
             win_leaf = ''
             for move in board.legal_moves:
                 board.push(move)
-                leaf, score = self.alphabeta(depth-1, alpha, beta, False)
+                leaf, score = self.alphabeta(board,depth-1, alpha, beta, False)
                 board.pop()
                 if score > v:
                     v = score
@@ -174,7 +173,7 @@ class TemporalDifference( Agent ):
             v = float('Inf')
             for move in board.legal_moves:
                 board.push(move)
-                leaf, score = self.alphabeta(depth-1, alpha, beta, True)
+                leaf, score = self.alphabeta(board,depth-1, alpha, beta, True)
                 board.pop()
                 if score < v:
                     v = score
@@ -232,6 +231,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--directory', default='../data')
     parser.add_argument('-n', '--name_session', default='RL')
     parser.add_argument('-m', '--model')
+    parser.add_argument('-l', '--leaf')
 
     args = parser.parse_args()
 
@@ -246,6 +246,6 @@ if __name__ == '__main__':
         print('Model {} not found'.format(args.model))
         quit()
     
-    model = TemporalDifference(model, wd=wd, session_name=sn)
+    model = TemporalDifference(model, wd=wd, session_name=sn, td_leaf=( not args.leaf == None))
 
     model.train()
