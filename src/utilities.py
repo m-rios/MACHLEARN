@@ -31,10 +31,15 @@ def findPieces(parsedfen,figure='r'):
     """ create a position string for each piece """
 
     out = [0] * 64 * 4
-    out[parsedfen.index('K')]             = 1             # white king
-    out[parsedfen.index('k') + 64]        = 1             # black king
-    out[parsedfen.index('N') + 2 * 64]    = 1             # white knight
-    out[parsedfen.index(figure) + 3 * 64]    = 1             # black rook
+    if 'K' in parsedfen:
+        out[parsedfen.index('K')]             = 1             # white king
+    if 'k' in parsedfen:
+        out[parsedfen.index('k') + 64]        = 1             # black king
+    if 'N' in parsedfen:
+        out[parsedfen.index('N') + 2 * 64]    = 1             # white knight
+    if figure in parsedfen:
+        out[parsedfen.index(figure) + 3 * 64]    = 1             # black rook
+
     return out
 
 def fromFen(fenstring, figure='r'):
@@ -59,8 +64,10 @@ def toFen(bitmap, figure='r'):
 
     simplified_board[K.index(1)] = 'K'
     simplified_board[k.index(1)] = 'k'
-    simplified_board[N.index(1)] = 'N'
-    simplified_board[r.index(1)] = figure
+    if 1 in N:
+        simplified_board[N.index(1)] = 'N'
+    if 1 in r:
+        simplified_board[r.index(1)] = figure
 
     fen = ""
     ind = 0

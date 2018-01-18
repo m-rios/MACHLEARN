@@ -1,3 +1,4 @@
+import argparse
 import tensorflow as tf
 import random as r
 import utilities as u
@@ -5,20 +6,28 @@ import numpy as np
 from datetime import datetime
 import os
 import sys
+from benchmarker import benchmark
+from random_player import RandomPlayer
+from agent import Agent
 
-class Mlp( object ):
-    def __init__(self, session=None, session_path=None, wd=None):
-       
+class Mlp( Agent ):
+    def __init__(self, session=None, session_path=None, wd=None, session_name=None):
+        super()
         self.wd = wd
+        self.session_name = session_name
         if self.wd is None:
             self.wd = os.getcwd()
+        if self.session_name is None:
+            self.session_name = 'SL_MLP'
         
+        self.save_path = self.wd+'/learnt/'+self.session_name+'/'
+
         if not os.path.exists(wd):
             os.makedirs(self.wd)
-        if not os.path.exists(wd+'/datasets'):
-            os.makedirs(self.wd+'/datasets')
-        if not os.path.exists(wd+'/learnt'):
-            os.makedirs(self.wd+'/learnt')    
+        if not os.path.exists(self.wd+'/datasets/'):
+            os.makedirs(self.wd+'/datasets/')
+        if not os.path.exists(self.save_path):
+            os.makedirs(self.save_path)
 
         self.n_inputs = 64*4
         self.n_hidden = 32
@@ -59,24 +68,15 @@ class Mlp( object ):
 
         self.init = tf.global_variables_initializer()
 
-        self.must_cleanup = True
-
         self.session = tf.Session()
         self.session.run(self.init)
         
         self.saver = tf.train.Saver()
 
         if session is not None:
-            self.must_cleanup = False
             self.session = session
         elif session_path is not None:
             self.saver.restore(self.session, session_path)
-
-
-    def __del__(self):
-        if self.must_cleanup:
-            self.session.close()
-
 
     def mlp(self, x):
         hidden =  tf.nn.softmax(tf.add(tf.matmul(x,self.weights['hidden']),self.biases['hidden']))
@@ -86,7 +86,7 @@ class Mlp( object ):
 
 
     def train(self):
-        save_path = self.wd+'/learnt/mlp_{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
+        save_file_name = self.save_path+'{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
         errors = []
 
         x, y = Mlp.prepare_data(self.wd)
@@ -107,11 +107,9 @@ class Mlp( object ):
 
         #should i put a self here ?
         #merged_summary = tf.summary.merge_all()
-        writer = tf.summary.FileWriter("/Users/vashisthdalmia/Documents/GitHub/MACHLEARN/data/summary")
-        
+        writer = tf.summary.FileWriter(self.save_path, filename_suffix=datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))        
 
-        for e in range(10000):
-        # for e in range(100000):
+        for e in range(200000):
 
             x_batch, y_batch = zip(*r.sample(list(zip(x_batch_train, y_batch_train)), self.batch_size))
 
@@ -143,15 +141,59 @@ class Mlp( object ):
             test_error.append(error_test)
             epoch += 1
             
-            if not (epoch % 100):
-                self.saver.save(self.session, save_path)
+            if not (epoch % 1000):
+                self.saver.save(self.session, save_file_name)
+                writer.flush()
+
+            if not (epoch % 10000):
+                self.saver.save(self.session, save_file_name)
+                wins, losses, draws = benchmark(self, RandomPlayer(), [u.toFen(list(_state), figure='b') for _state in r.sample(x_batch_test, 100)])
+                summary=tf.Summary()
+                summary.value.add(tag='wins', simple_value = wins)
+                summary.value.add(tag='losses', simple_value = losses)
+                summary.value.add(tag='draws', simple_value = draws)
+                writer.add_summary(summary, e)
         print(train_acc)
 
 
     def evaluate(self, fen, figure='b'):
         x = u.fromFen(fen,figure)
         return self.session.run(self.ev, feed_dict={self.X: np.array(x).reshape(1,256)})
+    
 
+    def next_action(self, board):
+        wins = []
+        losses = []
+        draws = []
+        
+        for move in board.legal_moves:
+            board.push(move)
+
+            score = self.evaluate(board.fen())
+            
+            if score == 0:
+                draws.append(move)
+            elif board.turn:
+                if score == 1:
+                    wins.append(move)
+                else:
+                    losses.append(move)
+            else:
+                if score == -1:
+                    wins.append(move)
+                else:
+                    losses.append(move)
+            board.pop()
+            
+        #Make sure we have at least one candidate move
+        assert(wins or losses or draws)
+
+        if wins:
+            return r.choice(wins)
+        elif draws:
+            return r.choice(draws)
+        else:
+            return r.choice(losses)
 
     @staticmethod
     def prepare_data(wd):
@@ -164,46 +206,24 @@ class Mlp( object ):
         x = []
         y = []
 
-        # for idx in range(len(data)):
-        for idx in range(100):
+        for idx in range(len(data)):
+        # for idx in range(100):
             x.append(np.array(u.fromFen(data[idx], figure='b')))
             y.append(int(labels[idx]))
         
         return x, y
 
-
-def test2():
-    model = Mlp(session_path='../data/model2018-01-12_19:13:54.ckpt')
-
-    with open('../data/fen_games') as f:
-        with open('../data/labels') as fl:
-            label = fl.readline()
-            fen = f.readline()
-    print('board: {}'.format(fen))
-    print('label: {}'.format(label))
-    print('eval: {}'.format(model.evaluate(fen)))
-
-def test1():
-    model = Mlp()
-    model.train()
-
 if __name__ == '__main__':
     
-    wd = None
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--directory', default='../data')
+    parser.add_argument('-n', '--name_session', default='SL_MLP')
 
-    if len(sys.argv) > 1:
-        wd = sys.argv[1]
+    args = parser.parse_args()
+
+    wd = args.directory
+    sn = args.name_session
     
-    model = Mlp(wd='../data')
+    model = Mlp(wd=wd, session_name=sn)
 
     model.train()
-
-
-    #tf.summary.scalar() #to get nice graphs and so
-
-   # tf.summary.histogram() # maybe use for weights 
-
-   # tf.summary.tensor() #under development 
-
-   # tf.summary.scalar("cross-entropy", xent)
-   # 9:51, 10:29.
