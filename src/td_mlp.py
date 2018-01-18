@@ -281,7 +281,7 @@ class TdMlp( object ):
 
             print('gradient {} computed'.format(idx))
 
-            self.session.run(self.apply_grads, feed_dict={grad_: grad 
+            self.session.run(self.apply_grads, feed_dict={grad_: -grad 
                                                                     for grad_, grad in zip(self.grads_s, grads) })
 
             epoch += 1
