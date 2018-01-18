@@ -6,8 +6,8 @@ from datetime import datetime
 import os
 import sys
 
-class Mlp( object ):
-    def __init__(self, session=None, session_path=None, wd=None):
+class SupervisedLearning( object ):
+    def __init__(self, model, session=None, session_path=None, wd=None):
        
         self.wd = wd
         if self.wd is None:
@@ -21,41 +21,12 @@ class Mlp( object ):
             os.makedirs(self.wd+'/learnt')   
         
         self.batch_size = 10
-
-        # Convolutional Layer 1 
-        self.filter_size1 = 2 
-        self.num_filters1 = 16
-
-        # Convolutional Layer 2 
-        self.filter_size2 = 2 
-        self.num_filters2 = 32
-
-        # fully connected layer 
-        self.fc = 128
-
-        # number of channels. Since input is 64*4
-        self.num_channels = 4
-
-        # dimensions of the input 
-        self.input = 64*4
-
-        self.out = 1
-
-        self.X = tf.placeholder("float", shape=[None, self.input])
-        self.X_input = tf.reshape(self.X, [-1, 8, 8, self.num_channels])
+        
+        self.X = model.X
 
         self.Y = tf.placeholder("float", shape=[None, self.out])
 
-        self.layer_conv1 = self.new_conv_layer(input=self.X_input , num_input_channels= self.num_channels, 
-            filter_size=self.filter_size1, num_filters= self.num_filters1, use_pooling=True)
-        
-        self.layer_conv2 = self.new_conv_layer(input=self.layer_conv1 , num_input_channels= self.num_filters1, 
-            filter_size=self.filter_size2, num_filters= self.num_filters2, use_pooling=True)
-
-        self.layer_flat, self.num_features = self.flatten_layer(self.layer_conv2)
-        self.layer_fc1 = self.new_fc_layer(input=self.layer_flat, num_inputs=self.num_features, num_outputs=self.fc, use_relu=True)
-        self.layer_fc2 = self.new_fc_layer(input=self.layer_fc1, num_inputs=self.fc, num_outputs=1,use_relu=False)
-        self.ev = tf.sign(tf.subtract(tf.nn.softmax(self.layer_fc2), tf.constant(0.5)))
+        self.ev = model.ev
 
 
         # optimizer 
@@ -84,72 +55,6 @@ class Mlp( object ):
             self.session = session
         elif session_path is not None:
             self.saver.restore(self.session, session_path)
-
-
-    def new_weights(self, shape):
-        return tf.Variable(tf.truncated_normal(shape, stddev=0.05))
-
-         # biases are fixed, so we only train weights 
-    def new_biases(self, length):
-        return tf.Variable(tf.constant(0.05, shape=[length]))   
-
-
-    def new_conv_layer(self, input, num_input_channels, filter_size, num_filters, use_pooling=True):
-        # num_input_channels = num_filters in last layer 
-
-        #shape of filter weights for convolution 
-        shape = [filter_size, filter_size, num_input_channels, num_filters]
-
-        #create new weights with the given shape
-        weights = self.new_weights(shape=shape)
-
-        #new biases, one for each filter 
-        biases = self.new_biases(length=num_filters)
-
-        # the CNN layer, padding = "same" means the input is padded with zero's. We have strides of 1,1,1,1
-        layer = tf.nn.conv2d(input=input, filter=weights, strides=[1, 1, 1, 1], padding='SAME')
-
-        # a bias value added to each filter channel
-        layer += biases
-
-        # It calculates max(x, 0) for each input value x. This adds some non-linearity.
-        layer = tf.nn.relu(layer)
-
-        #  This is 2x2 max-pooling, which means that we consider 2x2 windows and select the largest value 
-        # in each window. Then we move 2 pixels to the next window.
-        if use_pooling:
-            layer = tf.nn.max_pool(value=layer,ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-
-        return layer
-
-
-    # to flatten the layer of the fully connected part of the CNN
-    def flatten_layer(self, layer):
-
-        # Get the shape of the input layer.
-        layer_shape = layer.get_shape()
-
-        # The shape of the flattened layer should be [num_images, img_height * img_width * num_channels]
-        num_features = layer_shape[1:4].num_elements()
-        layer_flat = tf.reshape(layer, [-1, num_features])
-
-        return layer_flat, num_features
-
-    # defining the fully-connected layer 
-    def new_fc_layer(self, input, num_inputs, num_outputs, use_relu=True):
-        # Create new weights and biases.
-        weights = self.new_weights(shape=[num_inputs, num_outputs])
-        biases = self.new_biases(length=num_outputs)
-
-        # Calculate the layer as the matrix multiplication of
-        # the input and weights, and then add the bias-values.
-        layer = tf.matmul(input, weights) + biases
-
-        # Use ReLU?
-        if use_relu:
-            layer = tf.nn.relu(layer)
-
-        return layer
 
 
     def train(self):
@@ -255,13 +160,26 @@ def test1():
     model.train()
 
 if __name__ == '__main__':
-    
-    wd = None
 
-    if len(sys.argv) > 1:
-        wd = sys.argv[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--directory', default='../data')
+    parser.add_argument('-n', '--name_session', default='SL')
+    parser.add_argument('-m', '--model')
+
+    args = parser.parse_args()
+
+    wd = args.directory
+    sn = args.name_session
+
+    if args.model == 'mlp':
+        model = MlpFeatures()
+    elif args.model == 'cnn':
+        model = CNN()
+    else:
+        print('Model {} not found'.format(args.model))
+        quit()
     
-    model = Mlp(wd='../data')
+    model = TemporalDifference(model, wd=wd, session_name=sn)
 
     model.train()
 

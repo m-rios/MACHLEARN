@@ -9,11 +9,14 @@ import sys
 from benchmarker import benchmark
 from random_player import RandomPlayer
 from agent import Agent
+from mlp_bitmaps import MlpBitmaps
+from cnn import CNN
 
-class Mlp( Agent ):
-    def __init__(self, session=None, session_path=None, wd=None, session_name=None):
+class SupervisedLearning( Agent ):
+    def __init__(self, model, session=None, session_path=None, wd=None, session_name=None):
         super()
         self.wd = wd
+        self.model = model
         self.session_name = session_name
         if self.wd is None:
             self.wd = os.getcwd()
@@ -29,26 +32,12 @@ class Mlp( Agent ):
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)
 
-        self.n_inputs = 64*4
-        self.n_hidden = 32
-        self.n_out = 1
-
         self.batch_size = 256
 
-        self.weights = {
-            'hidden': tf.Variable(tf.random_normal([self.n_inputs, self.n_hidden])),
-            'out': tf.Variable(tf.random_normal([self.n_hidden, self.n_out]))
-         }
+        self.X = self.model.X
+        self.Y = tf.placeholder("float", shape=[None, 1])
 
-        self.biases = {
-            'hidden': tf.Variable(tf.random_normal([self.n_hidden])),
-            'out': tf.Variable(tf.random_normal([self.n_out])),
-        }
-
-        self.X = tf.placeholder("float", shape=[None, self.n_inputs])
-        self.Y = tf.placeholder("float", shape=[None, self.n_out])
-
-        self.ev = self.mlp(self.X)
+        self.ev = self.model.ev
 
         self.loss_op = tf.losses.mean_squared_error(labels=self.Y, predictions=self.ev)
 
@@ -78,18 +67,12 @@ class Mlp( Agent ):
         elif session_path is not None:
             self.saver.restore(self.session, session_path)
 
-    def mlp(self, x):
-        hidden =  tf.nn.softmax(tf.add(tf.matmul(x,self.weights['hidden']),self.biases['hidden']))
-        out = tf.nn.softmax(tf.add(tf.matmul(hidden,self.weights['out']),self.biases['out']))
-        ret = tf.sign(tf.subtract(out, tf.constant(0.5)))
-        return ret
-
 
     def train(self):
         save_file_name = self.save_path+'{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
         errors = []
 
-        x, y = Mlp.prepare_data(self.wd)
+        x, y = SupervisedLearning.prepare_data(self.wd)
 
         split = int(0.8*len(x))
         x_batch_train = x[0: split]
@@ -145,7 +128,7 @@ class Mlp( Agent ):
                 self.saver.save(self.session, save_file_name)
                 writer.flush()
 
-            if not (epoch % 10000):
+            if not (epoch % 1):
                 self.saver.save(self.session, save_file_name)
                 wins, losses, draws = benchmark(self, RandomPlayer(), [u.toFen(list(_state), figure='b') for _state in r.sample(x_batch_test, 100)])
                 summary=tf.Summary()
@@ -217,13 +200,22 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--directory', default='../data')
-    parser.add_argument('-n', '--name_session', default='SL_MLP')
+    parser.add_argument('-n', '--name_session', default='RL')
+    parser.add_argument('-m', '--model')
 
     args = parser.parse_args()
 
     wd = args.directory
     sn = args.name_session
+
+    if args.model == 'mlp':
+        model = MlpBitmaps()
+    elif args.model == 'cnn':
+        model = CNN()
+    else:
+        print('Model {} not found'.format(args.model))
+        quit()
     
-    model = Mlp(wd=wd, session_name=sn)
+    model = SupervisedLearning(model=model, wd=wd, session_name=sn)
 
     model.train()

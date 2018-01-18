@@ -36,5 +36,4 @@ class MlpFeatures( object ):
         self.ev = tf.tanh(tf.add(tf.matmul(hidden_2, self.weights['out']), self.biases['out']))
 
         self.trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        
-    
+  

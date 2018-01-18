@@ -216,7 +216,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--directory', default='../data')
-    parser.add_argument('-n', '--name_session', default='SL_MLP')
+    parser.add_argument('-n', '--name_session', default='RL')
     parser.add_argument('-m', '--model')
 
     args = parser.parse_args()
