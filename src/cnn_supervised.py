@@ -48,7 +48,6 @@ class Mlp( object ):
 
         self.layer_conv1 = self.new_conv_layer(input=self.X_input , num_input_channels= self.num_channels, 
             filter_size=self.filter_size1, num_filters= self.num_filters1, use_pooling=True)
-
         
         self.layer_conv2 = self.new_conv_layer(input=self.layer_conv1 , num_input_channels= self.num_filters1, 
             filter_size=self.filter_size2, num_filters= self.num_filters2, use_pooling=True)
@@ -56,7 +55,8 @@ class Mlp( object ):
         self.layer_flat, self.num_features = self.flatten_layer(self.layer_conv2)
         self.layer_fc1 = self.new_fc_layer(input=self.layer_flat, num_inputs=self.num_features, num_outputs=self.fc, use_relu=True)
         self.layer_fc2 = self.new_fc_layer(input=self.layer_fc1, num_inputs=self.fc, num_outputs=1,use_relu=False)
-        self.ev = tf.nn.softmax(self.layer_fc2)
+        self.ev = tf.sign(tf.subtract(tf.nn.softmax(self.layer_fc2), tf.constant(0.5)))
+
 
         # optimizer 
         self.loss_op = tf.losses.mean_squared_error(labels=self.Y, predictions=self.ev)
@@ -273,7 +273,6 @@ if __name__ == '__main__':
     model = Mlp(wd='../data')
 
     model.train()
-
 
     #tf.summary.scalar() #to get nice graphs and so
 
