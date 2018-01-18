@@ -5,6 +5,7 @@ import tensorflow as tf
 import random as rnd
 import utilities as u
 from benchmarker import benchmark
+from random_player import RandomPlayer
 import numpy as np
 from datetime import datetime
 import os
@@ -14,14 +15,17 @@ import time
 import argparse
 
 class TemporalDifference( Agent ):
-    def __init__(self, model, state=None, session=None, session_path=None, wd=None, session_name=None):
+    def __init__(self, model, td_leaf=False, session=None, session_path=None, wd=None, session_name=None):
         super()
         self.wd = wd
         self.session_name = session_name
+        self.td_leaf = td_leaf
         if self.wd is None:
             self.wd = os.getcwd()
         if self.session_name is None:
             self.session_name = 'RL'
+            if self.td_leaf:
+                self.session_name += '_TD_LEAF'
         
         self.model = model
 
@@ -86,7 +90,7 @@ class TemporalDifference( Agent ):
         if board.is_fivefold_repetition() or board.is_seventyfive_moves() or board.is_stalemate():
             scores[-1] = 0
 
-        # Outer loop of the TD_leaf(λ)
+        # Outer loop of the TD_(λ)
         N = len(scores)
         for t in range(N-1):
             dt = scores[t+1] - scores[t]
@@ -95,6 +99,10 @@ class TemporalDifference( Agent ):
             for j in range(t, N-1):
                 discount_factor += _lambda ** (j-t)
             state = np.array(u.extract_features(states[t])).reshape((1,143))
+            if self.td_leaf:
+                current_board = chess.Board(states[t])
+                state = self.alphabeta(current_board, _max=current_board.turn)
+                state = self.convert_input(state)
             # Compute the gradient at the current state
             grads = self.session.run(self.grads, feed_dict={self.X: state})
             # Increment total gradient for all variables
@@ -144,40 +152,46 @@ class TemporalDifference( Agent ):
             return (*rnd.choice(losses), -1 if board.turn else 1)
 
 
-    def alphabeta(self, board, depth=12, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
+    def alphabeta(self, board, depth=6, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
         if depth == 0 or board.is_game_over():
-            return ([board.fen()], self.evaluate(fen=board.fen()))
+            return (board.fen(), self.session.run(self.ev, feed_dict={self.X: self.convert_input(board.fen())}))
 
         if _max:
             v = float('-Inf')
-            tree = [board.fen()]
-            best_subtree = None
+            win_leaf = ''
             for move in board.legal_moves:
                 board.push(move)
-                (subtree, score) = self.alphabeta(depth-1, alpha, beta, False)
+                leaf, score = self.alphabeta(depth-1, alpha, beta, False)
                 board.pop()
                 if score > v:
                     v = score
-                    best_subtree = subtree                
+                    win_leaf = leaf
                 alpha = max(alpha, v)
                 if beta <= alpha:
                     break
-            return (tree + best_subtree, v)
+            return (win_leaf, v)
         else:
             v = float('Inf')
-            tree = [board.fen()]
-            best_subtree = None
             for move in board.legal_moves:
                 board.push(move)
-                (subtree, score) = self.alphabeta(depth-1, alpha, beta, True)
+                leaf, score = self.alphabeta(depth-1, alpha, beta, True)
                 board.pop()
                 if score < v:
                     v = score
-                    best_subtree = subtree                
+                    win_leaf = leaf
                 beta = min(beta, v)
                 if beta <= alpha:
                     break
-            return (tree + best_subtree, v)
+            return (win_leaf, v)
+
+    
+    def convert_input(self, fen):
+        if isinstance(self.model, MlpFeatures):
+            features = u.extract_features(fen)
+            return np.array(features).reshape((1, 143))
+        else:
+            features = u.fromFen(fen)
+            return np.array(features).reshape((1, 64*4))    
 
     def train(self):
         save_file_name = self.save_path+'{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
@@ -185,7 +199,7 @@ class TemporalDifference( Agent ):
         fens_path = self.wd + '/datasets/fen_games'
         with open(fens_path,'r') as fen_file:
             fens = fen_file.readlines()
-
+        
         errors = []
     
         epoch = 0
@@ -206,8 +220,8 @@ class TemporalDifference( Agent ):
             epoch += 1
 
             if not (epoch % 1000):
-                self.saver.save(self.session, save_path)
-                wins, loss, draws = benchmark(self, RandomAgent(), rnd.sample(fens, 100))
+                self.saver.save(self.session, self.save_path)
+                wins, loss, draws = benchmark(self, RandomPlayer(), rnd.sample(fens, 100))
 
         print(errors)
 
