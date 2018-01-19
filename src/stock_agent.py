@@ -1,6 +1,6 @@
 from agent import Agent
-# from stockfish import Stockfish
 import chess
+import chess.uci
 
 class StockAgent( Agent ):
 

@@ -1,5 +1,6 @@
 from agent import Agent
 from random_player import RandomPlayer
+from stock_agent import StockAgent
 import random as rnd
 import types
 import chess
@@ -29,11 +30,12 @@ def benchmark(agent1, agent2, fens):
         while not board.is_game_over():
             move = agent1.next_action(board)
             board.push(move)
+            if board.is_game_over(): break
             move = agent2.next_action(board)
             board.push(move)
         
         result = board.result()
-        # print(result)
+        print(result)
         if result == '1-0':
             result = 1
         elif result == '0-1':
@@ -61,6 +63,6 @@ if __name__ == '__main__':
     with open('../data/fen_games') as f:
         fens = f.readlines()
 
-        wins, losses, draws = benchmark(RandomPlayer(), RandomPlayer(), fens)
+        wins, losses, draws = benchmark(StockAgent(), StockAgent(), fens)
 
         print('wins: {}, losses: {}, draws: {}'.format(wins, losses, draws))
