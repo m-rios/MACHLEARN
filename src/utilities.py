@@ -130,6 +130,7 @@ def generate_position(n_pieces, figure='r'):
 
 def extract_features(fen):
     """extracts features from fen position
+    
     Global Features:
         [0] Side to move {0,1} = {b,w}
         [1:2] Material configuration [N,r] = {0,1} (number of pieces of each type)
@@ -138,11 +139,14 @@ def extract_features(fen):
         [11:14] Mobility of Rook [N,S,W,E] = [0,7]
     Square-Centric Features:
         []
+    
     Arguments:
         fen {String} -- fen encoding of the board state
+    
     Returns:
         [list of int] -- feature representation of the board
     """
+    
     metadata = fen.split('/')[7].split(' ')[1:-1]
     board = parsePieces(fen)
     
@@ -150,7 +154,7 @@ def extract_features(fen):
     features = []
     features.append(int(metadata[0] == 'w'))
     features.append(int(fen.find('N') >= 0))
-    features.append(int(fen.find('b') >= 0))
+    features.append(int(fen.find('r') >= 0))
     # Piece-Centric features
     features.append(int(fen.find('K')))
     features.append(board.find('K'))
@@ -159,69 +163,39 @@ def extract_features(fen):
     features.append(int(fen.find('k')))
     features.append(board.find('k'))
     features.append(features[2])
-    features.append(board.find('b'))
-
-#north east mobility of bishop 
-
-    row = int(features[10]/8) #Actual row of the bishop
-    col = int(features[10]%8) #Actual col of the bishop
-
-    ne = 0 
-    se = 0 
-    nw = 0 
-    sw = 0
-
-    r = row 
-    c = col
-    # north east mobility of bishop
-    while(r <= 8 and c <= 8):
-        i = 8*r +c
-        if board[i]=='.':
-            ne +=1 
+    features.append(board.find('r'))
+    #W,E mobility of the rook
+    row = int(features[10]/8) #Actual row of the rook
+    square = row * 8
+    w = 0
+    e = 0
+    r_found = False
+    for i in range(square, square+8): #traverse row counting free squares
+        r_found = (board[i] == 'r') or r_found
+        if not r_found:
+            w = (w + (board[i] == '.'))*(board[i] == '.')
         else:
-            break
-        r=r+1 
-        c=c+1
-
-    r = row 
-    c = col
-    # north west mobility of bishop
-    while( r <=8 and c >= 0):
-        i = 8*r +c
-        if board[i]=='.':
-            nw +=1 
+            if board[i] == 'r':
+                continue
+            if board[i] != '.' and board[i] != 'r':
+                break
+            e += 1
+    #N,S mobility of the rook
+    column = features[10] % 8
+    n = 0
+    s = 0
+    r_found = False
+    for i in range(column, column+64, 8): #traverse column counting free squares
+        r_found = (board[i] == 'r') or r_found
+        if not r_found:
+            n = (n + (board[i] == '.'))*(board[i] == '.')
         else:
-            break
-        r=r+1 
-        c=c-1
-
-    r = row 
-    c = col
-    # south east mobility of bishop
-    while(r >= 0 and c <= 8):
-        i = 8*r +c
-        if board[i]=='.':
-            se +=1 
-        else:
-            break
-        r=r-1 
-        c=c+1
-
-    r = row 
-    c = col
-    # south west mobility of bishop
-    while( r >= 0 and c >= 0):
-        i = 8*r +c
-        if board[i]=='.':
-            nw +=1 
-        else:
-            break
-        r=r-1 
-        c=c-1
-
-    features += [ne,nw,se,sw]
-
-
+            if board[i] == 'r':
+                continue 
+            if board[i] != '.' and board[i] != 'r':
+                break           
+            s += 1
+    features += [n,s,e,w]
     # Square-Centric features
     features += attack_defend_maps(fen)
     return features
@@ -263,15 +237,14 @@ if __name__ == '__main__':
     #     str_row = map(str, row)
     #     print(' | '.join(str_row))
 
-    pass
     # positions = generate_starting_positions(n=100, to_file=True);
     # print('done')
 
-    fen = '5k2/8/K7/8/8/2N5/8/b7 b - - 0 1'
-    #features = extract_features(fen)
+    fen = '5k2/8/K7/8/8/2N5/8/r7 b - - 0 1'
+    features = extract_features(fen)
     #print(features)
-    print(sum(fromFen(fen, figure='b')))
-
+    # print(sum(fromFen(fen, figure='b')))
+    pass
         
 # if __name__ == "__main__":
 #     test = "rnbqkbnr/ppp2ppp/3p1p2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
