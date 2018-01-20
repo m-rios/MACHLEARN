@@ -2,14 +2,14 @@ import chess
 import chess.uci
 
 handler = chess.uci.InfoHandler()
-engine = chess.uci.popen_engine('stockfish') #give correct address of your engine here
-# engine = chess.uci.popen_engine('/home/s3485781/stockfish-8-linux/Linux/stockfish_8_x64') #give correct address of your engine here
+#engine = chess.uci.popen_engine('stockfish') #give correct address of your engine here
+engine = chess.uci.popen_engine('/home/s3485781/stockfish-8-linux/Linux/stockfish_8_x64') #give correct address of your engine here
 engine.info_handlers.append(handler)
 
 with open('/data/s3485781/datasets/fen_games') as f:
 # with open('../data/fen_games_2') as f:
     lines=f.readlines()
-    with open('/data/s3485781/datasets/labels','a') as label_file:
+    with open('/data/s3485781/datasets/labels','w+') as label_file:
     # with open('../data/labels','a') as label_file:
         c = 0
         for i in range(0,len(lines)):
