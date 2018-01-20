@@ -117,7 +117,7 @@ class SupervisedLearning( Agent ):
                                                             self.X: x_batch,
                                                             self.Y: np.array(y_batch).reshape(self.batch_size,1)
                                                            })
-            writer.add_summary(s,e))
+            writer.add_summary(s,e)
 
             s = self.session.run(self.summary_loss, feed_dict={
                                                             self.X: x_batch,
