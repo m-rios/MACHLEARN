@@ -216,8 +216,6 @@ class TemporalDifference( Agent ):
 
             self.session.run(self.apply_grads, feed_dict={grad_: -grad 
                                                                     for grad_, grad in zip(self.grads_s, grads) })
-            ev_test = self.session.run(self.ev, feed_dict={self.X: self.convert_input(fen)})
-            print(ev_test)
             epoch += 1
 
             #if not (epoch % 1):
