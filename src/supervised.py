@@ -45,7 +45,7 @@ class SupervisedLearning( Agent ):
        # self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.02)
        # self.train_op = self.optimizer.minimize(self.loss_op)
 
-        self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=self.model.layer_fc2,
+        self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=self.model.last_layer,
                                                         labels=self.Y)
         self.loss_op = tf.reduce_mean(self.cross_entropy)
         self.train_op = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(self.loss_op)
@@ -108,44 +108,39 @@ class SupervisedLearning( Agent ):
 
             acc1, eval_train, _ , error_train = self.session.run([self.accuracy_train, self.ev, self.train_op, self.loss_op], feed_dict={
                                                          self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
                                                           })   
 
             s = self.session.run(self.summary_train, feed_dict={
                                                             self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
                                                            })
             writer.add_summary(s,e)
 
             x_batch, y_batch = zip(*r.sample(list(zip(x_batch_test, y_batch_test)), self.batch_size))           
             acc2,error_test = self.session.run([self.accuracy_test, self.loss_op], feed_dict={
                                                             self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
                                                            })
 
             s = self.session.run(self.summary_test, feed_dict={
                                                             self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
                                                            })
             writer.add_summary(s,e)
 
             s = self.session.run(self.summary_loss, feed_dict={
                                                             self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
                                                            })
             writer.add_summary(s,e)
 
-            s = self.session.run(self.ev, feed_dict={
-                                                            self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,1)
-                                                           })
-            evaluation.append(s)
             train_acc.append(acc1)
             test_acc.append(acc2)
             train_error.append(error_train)
             test_error.append(error_test)
             epoch += 1
-            
+
             if not (epoch % 1000):
                 self.saver.save(self.session, save_file_name)
                 writer.flush()
@@ -158,7 +153,6 @@ class SupervisedLearning( Agent ):
                 summary.value.add(tag='losses', simple_value = losses)
                 summary.value.add(tag='draws', simple_value = draws)
                 writer.add_summary(summary, e)
-        print(evaluation)
 
         
 

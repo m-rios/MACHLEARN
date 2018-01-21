@@ -41,13 +41,12 @@ class TemporalDifference( Agent ):
         self.batch_size = 256
         
         self.X = model.X
-        self.Y = tf.placeholder("float", shape=[None, 1])
         
         self.session = None
 
         self.ev = model.ev
 
-        self.grads = tf.gradients(self.ev, self.model.trainables)
+        self.grads = tf.gradients(self.model.last_layer, self.model.trainables)
 
         self.optimizer = tf.train.AdamOptimizer()
         
@@ -124,7 +123,7 @@ class TemporalDifference( Agent ):
             board.push(move)
 
             features = self.convert_input(board.fen())
-            score = self.session.run(self.ev, feed_dict={self.X: features})
+            score = int(self.session.run(self.ev, feed_dict={self.X: features})) - 1
             
             if score == 0:
                 draws.append((board.fen(), move))
@@ -153,7 +152,7 @@ class TemporalDifference( Agent ):
 
     def alphabeta(self, board, depth=4, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
         if depth == 0 or board.is_game_over():
-            return (board.fen(), self.session.run(self.ev, feed_dict={self.X: self.convert_input(board.fen())}))
+            return (board.fen(), int(self.session.run(self.ev, feed_dict={self.X: self.convert_input(board.fen())})) - 1)
 
         if _max:
             v = float('-Inf')
@@ -217,7 +216,8 @@ class TemporalDifference( Agent ):
 
             self.session.run(self.apply_grads, feed_dict={grad_: -grad 
                                                                     for grad_, grad in zip(self.grads_s, grads) })
-
+            ev_test = self.session.run(self.ev, feed_dict={self.X: self.convert_input(fen)})
+            print(ev_test)
             epoch += 1
 
             #if not (epoch % 1):
