@@ -10,7 +10,7 @@ with open('/data/s3485781/datasets/fen_games') as f:
 # with open('../data/fen_games_2') as f:
     lines=f.readlines()
     with open('/data/s3485781/datasets/labels','w+') as label_file:
-    # with open('../data/labels','a') as label_file:
+    # with open('../data/labels','w+') as label_file:
         c = 0
         for i in range(0,len(lines)):
             # print('iteration {}'.format(i))
