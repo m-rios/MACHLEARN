@@ -31,7 +31,7 @@ class TemporalDifference( Agent ):
 
         self.save_path = self.wd+'/learnt/'+self.session_name+'/'
 
-        if not os.path.exists(wd):
+        if not os.path.exists(self.wd):
             os.makedirs(self.wd)
         if not os.path.exists(self.wd+'/datasets/'):
             os.makedirs(self.wd+'/datasets/')
