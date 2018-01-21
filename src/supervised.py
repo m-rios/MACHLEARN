@@ -39,10 +39,14 @@ class SupervisedLearning( Agent ):
 
         self.ev = self.model.ev
 
-        self.loss_op = tf.losses.mean_squared_error(labels=self.Y, predictions=self.ev)
+       # self.loss_op = tf.losses.mean_squared_error(labels=self.Y, predictions=self.ev)
+       # self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.02)
+       # self.train_op = self.optimizer.minimize(self.loss_op)
 
-        self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.02)
-        self.train_op = self.optimizer.minimize(self.loss_op)
+        self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=self.ev,
+                                                        labels=self.Y)
+        self.loss_op = tf.reduce_mean(self.cross_entropy)
+        self.train_op = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(self.loss_op)
 
 
         # to check accuracy 
@@ -54,7 +58,8 @@ class SupervisedLearning( Agent ):
         # summary. Need to differentiate between test and training..
         self.summary_train = tf.summary.scalar("accuracy train", self.accuracy_train)
         self.summary_test = tf.summary.scalar("accuracy test", self.accuracy_test)
-        self.summary_loss = tf.summary.scalar("accuracy test", self.loss_op)
+       
+        self.summary_loss = tf.summary.scalar("loss/error", self.loss_op)
 
         self.init = tf.global_variables_initializer()
 
@@ -98,9 +103,10 @@ class SupervisedLearning( Agent ):
             x_batch, y_batch = zip(*r.sample(list(zip(x_batch_train, y_batch_train)), self.batch_size))
 
             acc1, eval_train, _ , error_train = self.session.run([self.accuracy_train, self.ev, self.train_op, self.loss_op], feed_dict={
-                                                            self.X: x_batch,
+                                                         self.X: x_batch,
                                                             self.Y: np.array(y_batch).reshape(self.batch_size,1)
-                                                           })       
+                                                          })   
+
             s = self.session.run(self.summary_train, feed_dict={
                                                             self.X: x_batch,
                                                             self.Y: np.array(y_batch).reshape(self.batch_size,1)
@@ -144,6 +150,8 @@ class SupervisedLearning( Agent ):
                 summary.value.add(tag='draws', simple_value = draws)
                 writer.add_summary(summary, e)
         print(train_acc)
+
+        
 
 
     def evaluate(self, fen, figure='b'):
