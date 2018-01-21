@@ -220,14 +220,15 @@ class TemporalDifference( Agent ):
 
             epoch += 1
 
+            #if not (epoch % 1):
             if not (epoch % 1000):
                 self.saver.save(self.session, self.save_path)
-                wins, loss, draws = benchmark(self, RandomPlayer(), rnd.sample(fens, 100))
+                wins, losses, draws = benchmark(self, RandomPlayer(), rnd.sample(fens, 100))
                 summary=tf.Summary()
                 summary.value.add(tag='wins', simple_value = wins)
                 summary.value.add(tag='losses', simple_value = losses)
                 summary.value.add(tag='draws', simple_value = draws)
-                writer.add_summary(summary, e)
+                writer.add_summary(summary, epoch)
                 writer.flush()
 
         print(errors)
