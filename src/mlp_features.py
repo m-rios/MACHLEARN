@@ -6,6 +6,7 @@ class MlpFeatures( object ):
         self.n_general = 3; self.n_piece_c = 12; self.n_square_c = 128
         self.n_input = self.n_general + self.n_piece_c + self.n_square_c
         self.n_hidden_2 = 9
+        self.out = 3
 
         self.X = tf.placeholder("float", shape=[None, self.n_input])
 
@@ -14,12 +15,12 @@ class MlpFeatures( object ):
             'piece_c': tf.Variable(tf.random_normal([self.n_piece_c, self.n_piece_c])),
             'square_c': tf.Variable(tf.random_normal([self.n_square_c, self.n_square_c])),
             'hidden_2': tf.Variable(tf.random_normal([self.n_input, self.n_hidden_2])),
-            'out': tf.Variable(tf.random_normal([self.n_hidden_2, 1]))
+            'out': tf.Variable(tf.random_normal([self.n_hidden_2, self.out]))
         }
         self.biases = {
             'b1': tf.Variable(tf.random_normal([self.n_input])),
             'b2': tf.Variable(tf.random_normal([self.n_hidden_2])),
-            'out': tf.Variable(tf.random_normal([1]))
+            'out': tf.Variable(tf.random_normal([self.out]))
         }
 
         # Locally connected layers
@@ -33,7 +34,9 @@ class MlpFeatures( object ):
         # Fully connected layer
         hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, self.weights['hidden_2']), self.biases['b2']))
         # Output layer
-        self.ev = tf.tanh(tf.add(tf.matmul(hidden_2, self.weights['out']), self.biases['out']))
+        self.last_layer = tf.add(tf.matmul(hidden_2, self.weights['out']), self.biases['out'])
+        self.class_prob = tf.nn.softmax(self.last_layer)
+        self.ev = tf.argmax(self.class_prob, dimension=1)
 
         self.trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
   

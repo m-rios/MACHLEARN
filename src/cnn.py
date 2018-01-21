@@ -19,7 +19,8 @@ class CNN( object ):
         # dimensions of the input 
         self.input = 64*4
 
-        self.out = 1
+        classes = ['Win', 'Loss','Draw']
+        self.out = len(classes)
 
         self.X = tf.placeholder("float", shape=[None, self.input])
         self.X_input = tf.reshape(self.X, [-1, 8, 8, self.num_channels])
@@ -32,8 +33,12 @@ class CNN( object ):
 
         self.layer_flat, self.num_features = self.flatten_layer(self.layer_conv2)
         self.layer_fc1 = self.new_fc_layer(input=self.layer_flat, num_inputs=self.num_features, num_outputs=self.fc, use_relu=True)
-        self.layer_fc2 = self.new_fc_layer(input=self.layer_fc1, num_inputs=self.fc, num_outputs=1,use_relu=False)
-        self.ev = tf.sign(tf.subtract(tf.nn.softmax(self.layer_fc2), tf.constant(0.5)))
+        self.last_layer = self.new_fc_layer(input=self.layer_fc1, num_inputs=self.fc, num_outputs=self.out,use_relu=False)
+        self.class_prob = tf.nn.softmax(self.last_layer)
+        self.ev = tf.argmax(self.class_prob, dimension=1)
+
+        
+        # self.ev = tf.sign(tf.subtract(tf.nn.softmax(self.layer_fc2), tf.constant(0.5)))
         self.trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
     
