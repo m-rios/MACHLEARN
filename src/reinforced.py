@@ -6,6 +6,7 @@ import random as rnd
 import utilities as u
 from benchmarker import benchmark
 from random_player import RandomPlayer
+from stock_agent import StockAgent
 import numpy as np
 from datetime import datetime
 import os
@@ -198,6 +199,7 @@ class TemporalDifference( Agent ):
         with open(fens_path,'r') as fen_file:
             fens = fen_file.readlines()
         
+        test_games = fens[len(fens)-500:len(fens)]
         errors = []
     
         epoch = 0
@@ -218,14 +220,18 @@ class TemporalDifference( Agent ):
                                                                     for grad_, grad in zip(self.grads_s, grads) })
             epoch += 1
 
-            #if not (epoch % 1):
-            if not (epoch % 1000):
+            # if not (epoch % 1):
+            if not (epoch % 2000):
                 self.saver.save(self.session, self.save_path)
-                wins, losses, draws = benchmark(self, RandomPlayer(), rnd.sample(fens, 100))
+                wins_random, losses_random, draws_random = benchmark(self, RandomPlayer(), test_games)
+                wins_stock, losses_stock, draws_stock = benchmark(self, StockAgent(depth=4), test_games)
                 summary=tf.Summary()
-                summary.value.add(tag='wins', simple_value = wins)
-                summary.value.add(tag='losses', simple_value = losses)
-                summary.value.add(tag='draws', simple_value = draws)
+                summary.value.add(tag='wins_random', simple_value = wins_random)
+                summary.value.add(tag='losses_random', simple_value = losses_random)
+                summary.value.add(tag='draws_random', simple_value = draws_random)
+                summary.value.add(tag='wins_stock', simple_value = wins_stock)
+                summary.value.add(tag='losses_stock', simple_value = losses_stock)
+                summary.value.add(tag='draws_stock', simple_value = draws_stock)
                 writer.add_summary(summary, epoch)
                 writer.flush()
 

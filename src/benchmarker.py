@@ -55,7 +55,7 @@ def benchmark(agent1, agent2, fens):
                 wins += 1
             else:
                 losses += 1
-    print((wins, losses, draws))
+    print((losses, draws, wins))
     return wins, losses, draws
 
 if __name__ == '__main__':
