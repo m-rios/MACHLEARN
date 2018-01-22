@@ -49,7 +49,7 @@ class SupervisedLearning( Agent ):
         self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=self.model.last_layer,
                                                         labels=self.Y)
         self.loss_op = tf.reduce_mean(self.cross_entropy)
-        self.train_op = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(self.loss_op)
+        self.train_op = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(self.loss_op)
 
 
 
@@ -62,7 +62,6 @@ class SupervisedLearning( Agent ):
         # summary. Need to differentiate between test and training..
         self.summary_train = tf.summary.scalar("accuracy train", self.accuracy_train)
         self.summary_test = tf.summary.scalar("accuracy test", self.accuracy_test)
-       
         self.summary_loss = tf.summary.scalar("loss/error", self.loss_op)
 
         self.init = tf.global_variables_initializer()
@@ -108,46 +107,27 @@ class SupervisedLearning( Agent ):
 
             x_batch, y_batch = zip(*r.sample(list(zip(x_batch_train, y_batch_train)), self.batch_size))
 
-            acc1, eval_train, _ , error_train = self.session.run([self.accuracy_train, self.ev, self.train_op, self.loss_op], feed_dict={
+            acc1, eval_train, _ , error_train,s = self.session.run([self.accuracy_train, self.ev, self.train_op, self.loss_op, self.summary_train], feed_dict={
                                                          self.X: x_batch,
                                                             self.Y: np.array(y_batch).reshape(self.batch_size,3)
                                                           })   
-
-            s = self.session.run(self.summary_train, feed_dict={
-                                                            self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
-                                                           })
             writer.add_summary(s,e)
 
             x_batch, y_batch = zip(*r.sample(list(zip(x_batch_test, y_batch_test)), self.batch_size))           
-            acc2,error_test = self.session.run([self.accuracy_test, self.loss_op], feed_dict={
+            acc2,error_test,s1,s2 = self.session.run([self.accuracy_test, self.loss_op, self.summary_test, self.summary_loss], feed_dict={
                                                             self.X: x_batch,
                                                             self.Y: np.array(y_batch).reshape(self.batch_size,3)
                                                            })
+            writer.add_summary(s1,e)
+            writer.add_summary(s2,e)
 
-            s = self.session.run(self.summary_test, feed_dict={
-                                                            self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
-                                                           })
-            writer.add_summary(s,e)
-
-            s = self.session.run(self.summary_loss, feed_dict={
-                                                            self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
-                                                           })
-            writer.add_summary(s,e)
-
-            train_acc.append(acc1)
-            test_acc.append(acc2)
-            train_error.append(error_train)
-            test_error.append(error_test)
             epoch += 1
 
             if not (epoch % 1000):
                 self.saver.save(self.session, save_file_name)
                 writer.flush()
 
-            if not (epoch % 10000):
+            if not (epoch % 20000):
             # if not (epoch % 1):
 
                 self.saver.save(self.session, save_file_name)
@@ -226,7 +206,7 @@ class SupervisedLearning( Agent ):
             else:
                 y.append([0,1,0])
         
-        return x, y, data[len(data)-500:len(data)]
+        return x, y, data[len(data)-200:len(data)]
 
 if __name__ == '__main__':
     
