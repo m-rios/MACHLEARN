@@ -222,7 +222,7 @@ class TemporalDifference( Agent ):
 
             # if not (epoch % 1):
             if not (epoch % 2000):
-                self.saver.save(self.session, self.save_path)
+                self.saver.save(self.session, save_file_name)
                 wins_random, losses_random, draws_random = benchmark(self, RandomPlayer(), test_games)
                 wins_stock, losses_stock, draws_stock = benchmark(self, StockAgent(depth=4), test_games)
                 summary=tf.Summary()
