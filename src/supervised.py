@@ -8,6 +8,7 @@ import os
 import sys
 from benchmarker import benchmark
 from random_player import RandomPlayer
+from stock_agent import StockAgent
 from agent import Agent
 from mlp_bitmaps import MlpBitmaps
 from cnn import CNN
@@ -81,7 +82,7 @@ class SupervisedLearning( Agent ):
         save_file_name = self.save_path+'{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
         errors = []
 
-        x, y = SupervisedLearning.prepare_data(self.wd)
+        x, y, test_games = SupervisedLearning.prepare_data(self.wd)
         
         split = int(0.8*len(x))
         x_batch_train = x[0: split]
@@ -89,6 +90,7 @@ class SupervisedLearning( Agent ):
 
         x_batch_test = x[split:len(x)]
         y_batch_test = y[split:len(y)]
+
 
         train_error = []
         test_error = []
@@ -146,13 +148,20 @@ class SupervisedLearning( Agent ):
                 writer.flush()
 
             if not (epoch % 10000):
+            # if not (epoch % 1):
+
                 self.saver.save(self.session, save_file_name)
-                wins, losses, draws = benchmark(self, RandomPlayer(), [u.toFen(list(_state), figure='b') for _state in r.sample(x_batch_test, 100)])
+                wins_random, losses_random, draws_random = benchmark(self, RandomPlayer(), test_games)
+                wins_stock, losses_stock, draws_stock = benchmark(self, StockAgent(depth=4), test_games)
                 summary=tf.Summary()
-                summary.value.add(tag='wins', simple_value = wins)
-                summary.value.add(tag='losses', simple_value = losses)
-                summary.value.add(tag='draws', simple_value = draws)
-                writer.add_summary(summary, e)
+                summary.value.add(tag='wins_random', simple_value = wins_random)
+                summary.value.add(tag='losses_random', simple_value = losses_random)
+                summary.value.add(tag='draws_random', simple_value = draws_random)
+                summary.value.add(tag='wins_stock', simple_value = wins_stock)
+                summary.value.add(tag='losses_stock', simple_value = losses_stock)
+                summary.value.add(tag='draws_stock', simple_value = draws_stock)
+                writer.add_summary(summary, epoch)
+                writer.flush()
 
         
 
@@ -217,7 +226,7 @@ class SupervisedLearning( Agent ):
             else:
                 y.append([0,1,0])
         
-        return x, y
+        return x, y, data[len(data)-500:len(data)]
 
 if __name__ == '__main__':
     
