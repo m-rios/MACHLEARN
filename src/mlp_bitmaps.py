@@ -2,18 +2,20 @@ import tensorflow as tf
 
 class MlpBitmaps( object ):
     def __init__(self):
-        self.n_inputs = 64*4 
-        self.n_hidden = 32 
+        self.n_inputs = 64*4
+        self.n_hidden1 = 64
+        self.n_hidden2 = 32
         self.out = 3
 
         self.weights = { 
-            'hidden': tf.Variable(tf.random_normal([self.n_inputs, self.n_hidden])), 
-
-            'out': tf.Variable(tf.random_normal([self.n_hidden, self.out])) 
+            'hidden1': tf.Variable(tf.random_normal([self.n_inputs, self.n_hidden1])), 
+            'hidden2': tf.Variable(tf.random_normal([self.n_hidden1, self.n_hidden2])), 
+            'out': tf.Variable(tf.random_normal([self.n_hidden2, self.out])) 
          } 
  
         self.biases = { 
-            'hidden': tf.Variable(tf.random_normal([self.n_hidden])), 
+            'hidden1': tf.Variable(tf.random_normal([self.n_hidden1])), 
+            'hidden2': tf.Variable(tf.random_normal([self.n_hidden2])), 
             'out': tf.Variable(tf.random_normal([self.out])), 
         } 
  
@@ -26,7 +28,8 @@ class MlpBitmaps( object ):
         self.trainables = tf.trainable_variables()
     
     def mlp(self, x):
-        hidden =  tf.nn.softmax(tf.add(tf.matmul(x,self.weights['hidden']),self.biases['hidden']))
-        out = tf.add(tf.matmul(hidden,self.weights['out']),self.biases['out'])
+        hidden1 =  tf.tanh(tf.add(tf.matmul(x,self.weights['hidden1']),self.biases['hidden1']))
+        hidden2 =  tf.tanh(tf.add(tf.matmul(hidden1,self.weights['hidden2']),self.biases['hidden2']))
+        out = tf.add(tf.matmul(hidden2,self.weights['out']),self.biases['out'])
         # ret = tf.sign(tf.subtract(out, tf.constant(0.5)))
         return out

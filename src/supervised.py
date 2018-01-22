@@ -127,7 +127,7 @@ class SupervisedLearning( Agent ):
                 self.saver.save(self.session, save_file_name)
                 writer.flush()
 
-            if not (epoch % 20000):
+            if not (epoch % 10000):
             # if not (epoch % 1):
 
                 self.saver.save(self.session, save_file_name)
@@ -146,7 +146,7 @@ class SupervisedLearning( Agent ):
         
 
 
-    def evaluate(self, fen, figure='b'):
+    def evaluate(self, fen, figure='r'):
         x = u.fromFen(fen,figure)
         return self.session.run(self.ev, feed_dict={self.X: np.array(x).reshape(1,256)}) - 1
     

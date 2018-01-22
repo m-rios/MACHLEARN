@@ -11,7 +11,10 @@ class CNN( object ):
         self.num_filters2 = 32
 
         # fully connected layer 
-        self.fc = 128
+        self.fc1 = 192
+
+        # fully connected layer 
+        self.fc2 = 96
 
         # number of channels. Since input is 64*4
         self.num_channels = 4
@@ -32,8 +35,9 @@ class CNN( object ):
             filter_size=self.filter_size2, num_filters= self.num_filters2, use_pooling=True)
 
         self.layer_flat, self.num_features = self.flatten_layer(self.layer_conv2)
-        self.layer_fc1 = self.new_fc_layer(input=self.layer_flat, num_inputs=self.num_features, num_outputs=self.fc, use_relu=True)
-        self.last_layer = self.new_fc_layer(input=self.layer_fc1, num_inputs=self.fc, num_outputs=self.out,use_relu=False)
+        self.layer_fc1 = self.new_fc_layer(input=self.layer_flat, num_inputs=self.num_features, num_outputs=self.fc1, use_relu=True)
+        self.layer_fc2 = self.new_fc_layer(input=self.layer_fc1, num_inputs=self.fc1, num_outputs=self.fc2, use_relu=True)
+        self.last_layer = self.new_fc_layer(input=self.layer_fc2, num_inputs=self.fc2, num_outputs=self.out,use_relu=False)
         self.class_prob = tf.nn.softmax(self.last_layer)
         self.ev = tf.argmax(self.class_prob, dimension=1)
 
