@@ -198,7 +198,7 @@ class SupervisedLearning( Agent ):
 
         for idx in range(len(data)):
         # for idx in range(100):
-            x.append(np.array(u.fromFen(data[idx], figure='b')))
+            x.append(np.array(u.fromFen(data[idx], figure='r')))
             if int(labels[idx]) == 1:
                 y.append([0,0,1])
             elif int(labels[idx]) == -1:
