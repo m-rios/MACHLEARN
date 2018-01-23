@@ -81,7 +81,7 @@ class SupervisedLearning( Agent ):
     def convert_input(self, fen):
         return np.array(u.fromFen(fen)).reshape((1,258))
     
-    def alphabeta(self, board, depth=4, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
+    def alphabeta(self, board, depth=2, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
         
         if board.is_game_over():
             #Find out absolute value of result (1-0 white wins, 0-1 black losses)
@@ -179,8 +179,8 @@ class SupervisedLearning( Agent ):
                 self.saver.save(self.session, save_file_name)
                 writer.flush()
 
-            # if not (epoch % 10000):
-            if not (epoch % 1):
+            if not (epoch % 10000):
+            # if not (epoch % 1):
                 self.saver.save(self.session, save_file_name)
                 improved_random, deproved_random, advantage_kept_random = benchmark(self, RandomPlayer(), test_games)
                 improved_stock, deproved_stock, advantage_kept_stock = benchmark(self, StockAgent(depth=4), test_games)
@@ -193,7 +193,6 @@ class SupervisedLearning( Agent ):
                 summary.value.add(tag='advantage_kept_stock', simple_value = advantage_kept_stock)
                 writer.add_summary(summary, epoch)
                 writer.flush()
-                print(1)
 
         
 
@@ -252,7 +251,7 @@ class SupervisedLearning( Agent ):
             else:
                 y.append([0,1,0])
         
-        return x, y, data[len(data)-5:len(data)]
+        return x, y, data[len(data)-250:len(data)]
 
 if __name__ == '__main__':
     
