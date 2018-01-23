@@ -49,7 +49,8 @@ class SupervisedLearning( Agent ):
         self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=self.model.last_layer,
                                                         labels=self.Y)
         self.loss_op = tf.reduce_mean(self.cross_entropy)
-        self.train_op = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(self.loss_op)
+        # self.train_op = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(self.loss_op)
+        self.train_op = tf.train.GradientDescentOptimizer(learning_rate=1e-2).minimize(self.loss_op)
 
 
 
