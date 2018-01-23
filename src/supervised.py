@@ -77,6 +77,54 @@ class SupervisedLearning( Agent ):
         elif session_path is not None:
             self.saver.restore(self.session, session_path)
 
+    
+    def alphabeta(self, board, depth=6, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
+        
+        if board.is_game_over():
+            #Find out absolute value of result (1-0 white wins, 0-1 black losses)
+            raw_result = board.result()
+            
+            if raw_result = '1-0':
+                result = 1
+            elif raw_result = '0-1':
+                result = -1
+            else:
+                result = 0
+            
+            #Convert outcome to relative (if root is white we leave it as it is, otherwise it's the negative)
+            result = result * np.sign(int(board.turn) - .5)
+            return (board.fen(), result)
+
+        if depth == 0:
+            return (board.fen(), int(self.session.run(self.ev, feed_dict={self.X: self.convert_input(board.fen())})) - 1)
+
+        if _max:
+            v = float('-Inf')
+            win_leaf = ''
+            for move in board.legal_moves:
+                board.push(move)
+                leaf, score = self.alphabeta(board,depth-1, alpha, beta, False)
+                board.pop()
+                if score > v:
+                    v = score
+                    win_leaf = leaf
+                alpha = max(alpha, v)
+                if beta <= alpha:
+                    break
+            return (win_leaf, v)
+        else:
+            v = float('Inf')
+            for move in board.legal_moves:
+                board.push(move)
+                leaf, score = self.alphabeta(board,depth-1, alpha, beta, True)
+                board.pop()
+                if score < v:
+                    v = score
+                    win_leaf = leaf
+                beta = min(beta, v)
+                if beta <= alpha:
+                    break
+            return (win_leaf, v)
 
     def train(self):
         save_file_name = self.save_path+'{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
@@ -160,7 +208,7 @@ class SupervisedLearning( Agent ):
         for move in board.legal_moves:
             board.push(move)
 
-            score = self.evaluate(board.fen()) * -1
+            score = self.alphabeta(board)
             
             if score == 0:
                 draws.append(move)
