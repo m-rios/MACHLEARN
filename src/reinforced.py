@@ -125,7 +125,7 @@ class TemporalDifference( Agent ):
 
             features = self.convert_input(board.fen())
             score = int(self.session.run(self.ev, feed_dict={self.X: features})) - 1
-            
+            print(score)
             if score == 0:
                 draws.append((board.fen(), move))
             elif board.turn:

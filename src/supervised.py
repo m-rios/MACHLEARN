@@ -49,8 +49,8 @@ class SupervisedLearning( Agent ):
         self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=self.model.last_layer,
                                                         labels=self.Y)
         self.loss_op = tf.reduce_mean(self.cross_entropy)
-        # self.train_op = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(self.loss_op)
-        self.train_op = tf.train.GradientDescentOptimizer(learning_rate=1e-2).minimize(self.loss_op)
+        self.train_op = tf.train.AdamOptimizer().minimize(self.loss_op)
+        # self.train_op = tf.train.GradientDescentOptimizer(learning_rate=1e-2).minimize(self.loss_op)
 
 
 
@@ -132,15 +132,15 @@ class SupervisedLearning( Agent ):
             # if not (epoch % 1):
 
                 self.saver.save(self.session, save_file_name)
-                wins_random, losses_random, draws_random = benchmark(self, RandomPlayer(), test_games)
-                wins_stock, losses_stock, draws_stock = benchmark(self, StockAgent(depth=4), test_games)
+                improved_random, deproved_random, advantage_kept_random = benchmark(self, RandomPlayer(), test_games)
+                improved_stock, deproved_stock, advantage_kept_stock = benchmark(self, StockAgent(depth=4), test_games)
                 summary=tf.Summary()
-                summary.value.add(tag='wins_random', simple_value = wins_random)
-                summary.value.add(tag='losses_random', simple_value = losses_random)
-                summary.value.add(tag='draws_random', simple_value = draws_random)
-                summary.value.add(tag='wins_stock', simple_value = wins_stock)
-                summary.value.add(tag='losses_stock', simple_value = losses_stock)
-                summary.value.add(tag='draws_stock', simple_value = draws_stock)
+                summary.value.add(tag='improved_random', simple_value = improved_random)
+                summary.value.add(tag='deproved_random', simple_value = deproved_random)
+                summary.value.add(tag='advantage_kept_random', simple_value = advantage_kept_random)
+                summary.value.add(tag='improved_stock', simple_value = improved_stock)
+                summary.value.add(tag='deproved_stock', simple_value = deproved_stock)
+                summary.value.add(tag='advantage_kept_stock', simple_value = advantage_kept_stock)
                 writer.add_summary(summary, epoch)
                 writer.flush()
 
@@ -160,28 +160,22 @@ class SupervisedLearning( Agent ):
         for move in board.legal_moves:
             board.push(move)
 
-            score = self.evaluate(board.fen())
+            score = self.evaluate(board.fen()) * -1
             
             if score == 0:
                 draws.append(move)
-            elif board.turn:
-                if score == 1:
-                    wins.append(move)
-                else:
-                    losses.append(move)
+            if score == 1:
+                wins.append(move)
             else:
-                if score == -1:
-                    wins.append(move)
-                else:
-                    losses.append(move)
+                losses.append(move)
             board.pop()
             
         #Make sure we have at least one candidate move
         assert(wins or losses or draws)
 
-        if wins:
+        if len(wins) > 0:
             return r.choice(wins)
-        elif draws:
+        elif len(draws) > 0:
             return r.choice(draws)
         else:
             return r.choice(losses)
@@ -207,7 +201,7 @@ class SupervisedLearning( Agent ):
             else:
                 y.append([0,1,0])
         
-        return x, y, data[len(data)-200:len(data)]
+        return x, y, data[len(data)-500:len(data)]
 
 if __name__ == '__main__':
     
