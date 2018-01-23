@@ -45,8 +45,8 @@ def findPieces(parsedfen,figure='r'):
 def fromFen(fenstring, figure='r'):
 
     """ convert fen notaton to bit notation """ 
-
-    return findPieces(parsePieces(fenstring),figure)
+    is_white = chess.Board(fen).turn
+    return findPieces(parsePieces(fenstring),figure) + [int(is_white), int(not is_white)]
 
 def toFen(bitmap, figure='r'):
     """toFen
@@ -240,8 +240,8 @@ if __name__ == '__main__':
     # positions = generate_starting_positions(n=100, to_file=True);
     # print('done')
 
-    fen = '5k2/8/K7/8/8/2N5/8/r7 b - - 0 1'
-    features = extract_features(fen)
+    fen = '5k2/8/K7/8/8/2N5/8/r7 w - - 0 1'
+    print(fromFen(fen))
     #print(features)
     # print(sum(fromFen(fen, figure='b')))
     pass
