@@ -2,7 +2,8 @@ import tensorflow as tf
 
 class MlpBitmaps( object ):
     def __init__(self):
-        self.n_inputs = 64*4
+
+        self.n_inputs = 64*4+2
         self.n_hidden1 = 64
         self.n_hidden2 = 32
         self.out = 3

@@ -20,13 +20,17 @@ class CNN( object ):
         self.num_channels = 4
 
         # dimensions of the input 
-        self.input = 64*4
+        self.input = 64*4 + 2 
 
         classes = ['Win', 'Loss','Draw']
         self.out = len(classes)
 
         self.X = tf.placeholder("float", shape=[None, self.input])
-        self.X_input = tf.reshape(self.X, [-1, 8, 8, self.num_channels])
+
+        self.X_in = tf.gather(self.X, [i for i in range(64*4)], axis = 1)
+        self.turn = tf.gather(self.X, [64*4, 64*4+1], axis = 1)
+
+        self.X_input = tf.reshape(self.X_in, [-1, 8, 8, self.num_channels])
 
         self.layer_conv1 = self.new_conv_layer(input=self.X_input , num_input_channels= self.num_channels, 
             filter_size=self.filter_size1, num_filters= self.num_filters1, use_pooling=True)
@@ -35,6 +39,10 @@ class CNN( object ):
             filter_size=self.filter_size2, num_filters= self.num_filters2, use_pooling=True)
 
         self.layer_flat, self.num_features = self.flatten_layer(self.layer_conv2)
+        
+        self.layer_flat = tf.concat([self.layer_flat, self.turn],1)
+        self.num_features = self.num_features + 2 
+
         self.layer_fc1 = self.new_fc_layer(input=self.layer_flat, num_inputs=self.num_features, num_outputs=self.fc1, use_relu=True)
         self.layer_fc2 = self.new_fc_layer(input=self.layer_fc1, num_inputs=self.fc1, num_outputs=self.fc2, use_relu=True)
         self.last_layer = self.new_fc_layer(input=self.layer_fc2, num_inputs=self.fc2, num_outputs=self.out,use_relu=False)
