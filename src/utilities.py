@@ -45,7 +45,7 @@ def findPieces(parsedfen,figure='r'):
 def fromFen(fenstring, figure='r'):
 
     """ convert fen notaton to bit notation """ 
-    is_white = chess.Board(fen).turn
+    is_white = chess.Board(fenstring).turn
     return findPieces(parsePieces(fenstring),figure) + [int(is_white), int(not is_white)]
 
 def toFen(bitmap, figure='r'):

@@ -177,8 +177,7 @@ class SupervisedLearning( Agent ):
                 writer.flush()
 
             if not (epoch % 10000):
-            # if not (epoch % 1):
-
+            #if not (epoch % 1):
                 self.saver.save(self.session, save_file_name)
                 improved_random, deproved_random, advantage_kept_random = benchmark(self, RandomPlayer(), test_games)
                 improved_stock, deproved_stock, advantage_kept_stock = benchmark(self, StockAgent(depth=4), test_games)
@@ -197,7 +196,7 @@ class SupervisedLearning( Agent ):
 
     def evaluate(self, fen, figure='r'):
         x = u.fromFen(fen,figure)
-        return self.session.run(self.ev, feed_dict={self.X: np.array(x).reshape(1,256)}) - 1
+        return self.session.run(self.ev, feed_dict={self.X: np.array(x).reshape(1,258)}) - 1
     
 
     def next_action(self, board):
