@@ -40,6 +40,10 @@ def benchmark(agent1, agent2, fens):
             initial_score = handler_score.cp
         else:
             initial_score = handler_score.mate
+            if initial_score > 0:
+                initial_score =  100000 - initial_score 
+            else: 
+                initial_score =  -100000 + initial_score
         
 
         while not board.is_game_over():
@@ -55,8 +59,13 @@ def benchmark(agent1, agent2, fens):
         handler_score = handler.info["score"][1]
         if handler_score.cp is not None:
             final_score = handler_score.cp
+            
         else:
             final_score = handler_score.mate
+            if final_score > 0:
+                final_score =  100000 - final_score 
+            else: 
+                final_score =  -100000 + final_score
         
 
         finish_white_to_play = np.sign(board.turn-.5)
