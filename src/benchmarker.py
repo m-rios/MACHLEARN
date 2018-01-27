@@ -56,14 +56,18 @@ def benchmark(agent1, agent2, fens):
             board.push(move)
             score_after = compute_score(engine, handler, board) * -1
             scores_diff.append(score_after - score_before)
+            n_moves += 1
             if board.is_game_over(): break
             move = agent2.next_action(board)
             board.push(move)
-            n_moves += 1
         
         scores_diff = np.sign(scores_diff)
-        improves.append(list(scores_diff).count(1)/n_moves)
-        deproves.append(list(scores_diff).count(-1)/n_moves)
+        if n_moves > 0:
+            improves.append(list(scores_diff).count(1)/n_moves)
+            deproves.append(list(scores_diff).count(-1)/n_moves)
+        else:
+            improves.append(0)
+            deproves.append(0)
     
     avg_improve = np.mean(improves)
     avg_deprove = np.mean(deproves)
