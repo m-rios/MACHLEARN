@@ -53,7 +53,6 @@ class SupervisedLearning( Agent ):
         # self.train_op = tf.train.GradientDescentOptimizer(learning_rate=1e-2).minimize(self.loss_op)
 
 
-
         # to check accuracy 
         self.correct_prediction = tf.equal(self.ev, self.Y_true_cls)
         self.accuracy_test= tf.reduce_mean(tf.cast(self.correct_prediction, tf.float32))
@@ -157,30 +156,8 @@ class SupervisedLearning( Agent ):
 
         for e in range(200000):
 
-            x_batch, y_batch = zip(*r.sample(list(zip(x_batch_train, y_batch_train)), self.batch_size))
-
-            acc1, eval_train, _ , error_train,s = self.session.run([self.accuracy_train, self.ev, self.train_op, self.loss_op, self.summary_train], feed_dict={
-                                                         self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
-                                                          })   
-            writer.add_summary(s,e)
-
-            x_batch, y_batch = zip(*r.sample(list(zip(x_batch_test, y_batch_test)), self.batch_size))           
-            acc2,error_test,s1,s2 = self.session.run([self.accuracy_test, self.loss_op, self.summary_test, self.summary_loss], feed_dict={
-                                                            self.X: x_batch,
-                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
-                                                           })
-            writer.add_summary(s1,e)
-            writer.add_summary(s2,e)
-
-            epoch += 1
-
-            if not (epoch % 1000):
-                self.saver.save(self.session, save_file_name)
-                writer.flush()
-
             if not (epoch % 10000):
-            # if not (epoch % 1):
+            #if not (epoch % 1):
                 self.saver.save(self.session, save_file_name)
                 improved_random, deproved_random, advantage_kept_random = benchmark(self, RandomPlayer(), test_games)
                 improved_stock, deproved_stock, advantage_kept_stock = benchmark(self, StockAgent(depth=4), test_games)
@@ -194,6 +171,32 @@ class SupervisedLearning( Agent ):
                 writer.add_summary(summary, epoch)
                 writer.flush()
 
+
+            x_batch, y_batch = zip(*r.sample(list(zip(x_batch_test, y_batch_test)), self.batch_size))           
+            s1,s2 = self.session.run([self.summary_test, self.summary_loss], feed_dict={
+                                                            self.X: x_batch,
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
+                                                           })
+            writer.add_summary(s1,e)
+            writer.add_summary(s2,e)
+            
+            x_batch, y_batch = zip(*r.sample(list(zip(x_batch_train, y_batch_train)), self.batch_size))
+            s3 = self.session.run(self.summary_train, feed_dict={
+                                                         self.X: x_batch,
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
+                                                          })
+            writer.add_summary(s3,e)
+            self.session.run([self.train_op], feed_dict={
+                                                         self.X: x_batch,
+                                                            self.Y: np.array(y_batch).reshape(self.batch_size,3)
+                                                          })   
+            epoch += 1
+
+            if not (epoch % 1000):
+                self.saver.save(self.session, save_file_name)
+                writer.flush()
+
+            
         
 
 
@@ -251,7 +254,7 @@ class SupervisedLearning( Agent ):
             else:
                 y.append([0,1,0])
         
-        return x, y, data[len(data)-250:len(data)]
+        return x, y, data[len(data)-150:len(data)]
 
 if __name__ == '__main__':
     
