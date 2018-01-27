@@ -198,6 +198,8 @@ def extract_features(fen):
     features += [n,s,e,w]
     # Square-Centric features
     features += attack_defend_maps(fen)
+    white_to_play = chess.Board(fen).turn
+    features += [int(white_to_play), int(not white_to_play)]
     return features
 
 
@@ -240,8 +242,8 @@ if __name__ == '__main__':
     # positions = generate_starting_positions(n=100, to_file=True);
     # print('done')
 
-    fen = '5k2/8/K7/8/8/2N5/8/r7 w - - 0 1'
-    print(fromFen(fen))
+    fen = '5k2/8/K7/8/8/2N5/8/r7 b - - 0 1'
+    print(extract_features(fen))
     #print(features)
     # print(sum(fromFen(fen, figure='b')))
     pass
