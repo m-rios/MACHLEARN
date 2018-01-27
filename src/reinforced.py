@@ -199,7 +199,7 @@ class TemporalDifference( Agent ):
         with open(fens_path,'r') as fen_file:
             fens = fen_file.readlines()
         
-        test_games = fens[len(fens)-500:len(fens)]
+        test_games = fens[len(fens)-150:len(fens)]
         errors = []
     
         epoch = 0
@@ -218,23 +218,22 @@ class TemporalDifference( Agent ):
 
             self.session.run(self.apply_grads, feed_dict={grad_: -grad 
                                                                     for grad_, grad in zip(self.grads_s, grads) })
-            epoch += 1
-
+            
             # if not (epoch % 1):
             if not (epoch % 2000):
                 self.saver.save(self.session, save_file_name)
-                wins_random, losses_random, draws_random = benchmark(self, RandomPlayer(), test_games)
-                wins_stock, losses_stock, draws_stock = benchmark(self, StockAgent(depth=4), test_games)
+                improved_random, deproved_random, advantage_kept_random = benchmark(self, RandomPlayer(), test_games)
+                improved_stock, deproved_stock, advantage_kept_stock = benchmark(self, StockAgent(depth=4), test_games)
                 summary=tf.Summary()
-                summary.value.add(tag='wins_random', simple_value = wins_random)
-                summary.value.add(tag='losses_random', simple_value = losses_random)
-                summary.value.add(tag='draws_random', simple_value = draws_random)
-                summary.value.add(tag='wins_stock', simple_value = wins_stock)
-                summary.value.add(tag='losses_stock', simple_value = losses_stock)
-                summary.value.add(tag='draws_stock', simple_value = draws_stock)
+                summary.value.add(tag='improved_random', simple_value = improved_random)
+                summary.value.add(tag='deproved_random', simple_value = deproved_random)
+                summary.value.add(tag='advantage_kept_random', simple_value = advantage_kept_random)
+                summary.value.add(tag='improved_stock', simple_value = improved_stock)
+                summary.value.add(tag='deproved_stock', simple_value = deproved_stock)
+                summary.value.add(tag='advantage_kept_stock', simple_value = advantage_kept_stock)
                 writer.add_summary(summary, epoch)
                 writer.flush()
-
+            epoch += 1
         print(errors)
 
 
