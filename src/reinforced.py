@@ -144,39 +144,6 @@ class TemporalDifference( Agent ):
         else:
             return (*rnd.choice(losses), -1)
 
-
-    def alphabeta(self, board, depth=4, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
-        if depth == 0 or board.is_game_over():
-            return (board.fen(), int(self.session.run(self.ev, feed_dict={self.X: self.convert_input(board.fen())})) - 1)
-
-        if _max:
-            v = float('-Inf')
-            win_leaf = ''
-            for move in board.legal_moves:
-                board.push(move)
-                leaf, score = self.alphabeta(board,depth-1, alpha, beta, False)
-                board.pop()
-                if score > v:
-                    v = score
-                    win_leaf = leaf
-                alpha = max(alpha, v)
-                if beta <= alpha:
-                    break
-            return (win_leaf, v)
-        else:
-            v = float('Inf')
-            for move in board.legal_moves:
-                board.push(move)
-                leaf, score = self.alphabeta(board,depth-1, alpha, beta, True)
-                board.pop()
-                if score < v:
-                    v = score
-                    win_leaf = leaf
-                beta = min(beta, v)
-                if beta <= alpha:
-                    break
-            return (win_leaf, v)
-
     
     def convert_input(self, fen):
         if isinstance(self.model, MlpFeatures):
