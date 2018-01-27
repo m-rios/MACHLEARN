@@ -124,31 +124,25 @@ class TemporalDifference( Agent ):
             board.push(move)
 
             features = self.convert_input(board.fen())
-            score = int(self.session.run(self.ev, feed_dict={self.X: features})) - 1
-            print(score)
+            score = (int(self.session.run(self.ev, feed_dict={self.X: features})) - 1) * -1
+            
             if score == 0:
                 draws.append((board.fen(), move))
-            elif board.turn:
-                if score == 1:
-                    wins.append((board.fen(), move))
-                else:
-                    losses.append((board.fen(), move))
-            else:
-                if score == -1:
-                    wins.append((board.fen(), move))
-                else:
-                    losses.append((board.fen(), move))
+            elif score > 0:
+                wins.append((board.fen(), move))
+            else:    
+                losses.append((board.fen(), move))
             board.pop()
             
         #Make sure we have at least one candidate move
         assert(wins or losses or draws)
 
-        if wins:
-            return (*rnd.choice(wins), 1 if board.turn else -1)
+        if len(wins) > :
+            return (*rnd.choice(wins), 1)
         elif draws:
             return (*rnd.choice(draws), 0)
         else:
-            return (*rnd.choice(losses), -1 if board.turn else 1)
+            return (*rnd.choice(losses), -1)
 
 
     def alphabeta(self, board, depth=4, alpha=float('-Inf'), beta=float('+Inf'), _max=True):
