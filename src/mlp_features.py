@@ -8,9 +8,9 @@ class MlpFeatures( object ):
         self.n_hidden_2 = 9
         self.out = 3
 
-        self.X = tf.placeholder("float", shape=[None, self.n_input])
-        self.turn = tf.gather(self.X, [64*4, 64*4+1], axis = 1)
-        self.X = tf.gather(self.X, [i for i in range(64*4)], axis = 1)
+        self.X = tf.placeholder("float", shape=[None, self.n_input - 4])
+        self.turn = tf.gather(self.X, [143, 144], axis = 1)
+        self.X_input = tf.gather(self.X, [i for i in range(143)], axis = 1)
 
 
         self.weights = {
@@ -27,13 +27,13 @@ class MlpFeatures( object ):
         }
 
         # Locally connected layers
-        general_i = tf.gather(self.X,tf.convert_to_tensor(list(range(self.n_general)), dtype=tf.int32),axis=1)
+        general_i = tf.gather(self.X_input,tf.convert_to_tensor(list(range(self.n_general-2)), dtype=tf.int32),axis=1)
         general_i = tf.concat([general_i,self.turn],1)
 
-        piece_i = tf.gather(self.X,tf.convert_to_tensor(list(range(self.n_general,self.n_general+self.n_piece_c)), dtype=tf.int32), axis=1)
+        piece_i = tf.gather(self.X_input,tf.convert_to_tensor(list(range(self.n_general - 2,self.n_general - 2 + self.n_piece_c - 2)), dtype=tf.int32), axis=1)
         piece_i = tf.concat([piece_i,self.turn],1)
 
-        square_i = tf.gather(self.X,tf.convert_to_tensor(list(range(self.n_general+self.n_piece_c, self.n_general + self.n_piece_c + self.n_square_c)), dtype=tf.int32), axis=1)
+        square_i = tf.gather(self.X_input,tf.convert_to_tensor(list(range(self.n_general - 2+self.n_piece_c - 2, self.n_general - 2 + self.n_piece_c - 2 + self.n_square_c - 2)), dtype=tf.int32), axis=1)
         square_i = tf.concat([square_i,self.turn],1)
 
         
@@ -41,7 +41,7 @@ class MlpFeatures( object ):
         piece_c = tf.matmul(piece_i, self.weights['piece_c'])
         square_c = tf.matmul(square_i, self.weights['square_c'])
 
-        hidden_1 = tf.nn.tanhtf.add(tf.concat([general, piece_c, square_c], 1), self.biases['b1']))
+        hidden_1 = tf.nn.tanh(tf.add(tf.concat([general, piece_c, square_c], 1), self.biases['b1']))
         # Fully connected layer
         hidden_2 = tf.nn.tanh(tf.add(tf.matmul(hidden_1, self.weights['hidden_2']), self.biases['b2']))
         # Output layer

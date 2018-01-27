@@ -11,6 +11,21 @@ import numpy as np
 #     def __init__(self, white, black):
 #         pass
 
+def compute_score(engine, handler, board):
+    engine.position(board)
+    evaluation = engine.go(depth=10)
+    handler_score = handler.info["score"][1]
+    assert handler_score.cp is not None or handler_score is not None
+    if handler_score.cp is not None:
+        score = handler_score.cp
+    else:
+        score = handler_score.mate
+        if score > 0:
+            score =  100000 - score 
+        else: 
+            score =  -100000 + score
+    return score
+
 def benchmark(agent1, agent2, fens):
     
     handler = chess.uci.InfoHandler()
@@ -23,67 +38,37 @@ def benchmark(agent1, agent2, fens):
     assert(isinstance(agent1, Agent) and isinstance(agent2, Agent))
     
     #Statistics to be computed for 1st agent
-    improve = 0
-    deprove = 0
-    advantage_kept = 0
+    improves = []
+    deproves = []
     for fen in fens:
         
         board = chess.Board(fen)
         initial_white_to_play = np.sign(board.turn-.5)
         
         #Find advantage at the beginning
-        engine.position(board)
-        evaluation = engine.go(depth=10)
-        handler_score = handler.info["score"][1]
-        assert handler_score.cp is not None or handler_score is not None
-        if handler_score.cp is not None:
-            initial_score = handler_score.cp
-        else:
-            initial_score = handler_score.mate
-            if initial_score > 0:
-                initial_score =  100000 - initial_score 
-            else: 
-                initial_score =  -100000 + initial_score
         
-
+        scores_diff = []
+        
+        n_moves = 0
         while not board.is_game_over():
+            score_before = compute_score(engine, handler, board)
             move = agent1.next_action(board)
             board.push(move)
+            score_after = compute_score(engine, handler, board) * -1
+            scores_diff.append(score_after - score_before)
             if board.is_game_over(): break
             move = agent2.next_action(board)
             board.push(move)
-
-        #Find advantage at the end
-        engine.position(board)
-        evaluation = engine.go(depth=10)
-        handler_score = handler.info["score"][1]
-        if handler_score.cp is not None:
-            final_score = handler_score.cp
-            
-        else:
-            final_score = handler_score.mate
-            if final_score > 0:
-                final_score =  100000 - final_score 
-            else: 
-                final_score =  -100000 + final_score
+            n_moves += 1
         
-
-        finish_white_to_play = np.sign(board.turn-.5)
-
-        final_score = final_score * finish_white_to_play * initial_white_to_play
-        
-        if final_score > initial_score:
-            improve += 1
-        elif final_score < initial_score:
-            deprove += 1
-        elif final_score > 0:
-            advantage_kept += 1
+        scores_diff = np.sign(scores_diff)
+        improves.append(list(scores_diff).count(1)/n_moves)
+        deproves.append(list(scores_diff).count(-1)/n_moves)
     
-    improve = improve / len(fens)
-    deprove = deprove / len(fens)
-    advantage_kept = advantage_kept / len(fens)
+    avg_improve = np.mean(improves)
+    avg_deprove = np.mean(deproves)
     
-    return improve, deprove, advantage_kept
+    return avg_improve, avg_deprove
 
 if __name__ == '__main__':
     

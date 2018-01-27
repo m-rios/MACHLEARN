@@ -137,9 +137,9 @@ class TemporalDifference( Agent ):
         #Make sure we have at least one candidate move
         assert(wins or losses or draws)
 
-        if len(wins) > :
+        if len(wins) > 0:
             return (*rnd.choice(wins), 1)
-        elif draws:
+        elif len(draws) > 0:
             return (*rnd.choice(draws), 0)
         else:
             return (*rnd.choice(losses), -1)
@@ -148,10 +148,10 @@ class TemporalDifference( Agent ):
     def convert_input(self, fen):
         if isinstance(self.model, MlpFeatures):
             features = u.extract_features(fen)
-            return np.array(features).reshape((1, 143))
+            return np.array(features).reshape((1, 145))
         else:
             features = u.fromFen(fen)
-            return np.array(features).reshape((1, 64*4))    
+            return np.array(features).reshape((1, 64*4+2))    
 
     def train(self):
         save_file_name = self.save_path+'{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
@@ -160,42 +160,41 @@ class TemporalDifference( Agent ):
         with open(fens_path,'r') as fen_file:
             fens = fen_file.readlines()
         
-        test_games = fens[len(fens)-150:len(fens)]
+        test_games = fens[len(fens)-10:len(fens)]
         errors = []
     
         epoch = 0
         
         writer = tf.summary.FileWriter(self.save_path, filename_suffix=datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
 
-        for idx in range(len(fens)):
+        for epoch in range(len(fens)):
             
-            fen = fens[idx]
+            fen = fens[epoch]
 
+            if not (epoch % 2000):
+                print('benchmarking')
+                self.saver.save(self.session, save_file_name)
+                improved_random, deproved_random = benchmark(self, RandomPlayer(), test_games)
+                print('Improved: {}, Deproved: {}'.format(improved_random, deproved_random))
+                improved_stock, deproved_stock = benchmark(self, StockAgent(depth=4), test_games)
+                print('Improved: {}, Deproved: {}'.format(improved_stock, deproved_stock))
+                summary=tf.Summary()
+                summary.value.add(tag='improved_random', simple_value = improved_random)
+                summary.value.add(tag='deproved_random', simple_value = deproved_random)
+                summary.value.add(tag='improved_stock', simple_value = improved_stock)
+                summary.value.add(tag='deproved_stock', simple_value = deproved_stock)
+                writer.add_summary(summary, epoch)
+                writer.flush()
+        
             print('about to compute gradient')
 
             grads = self.compute_gradients(fen)
 
-            print('gradient {} computed'.format(idx))
+            print('gradient {} computed'.format(epoch))
 
             self.session.run(self.apply_grads, feed_dict={grad_: -grad 
                                                                     for grad_, grad in zip(self.grads_s, grads) })
-            
-            # if not (epoch % 1):
-            if not (epoch % 2000):
-                self.saver.save(self.session, save_file_name)
-                improved_random, deproved_random, advantage_kept_random = benchmark(self, RandomPlayer(), test_games)
-                improved_stock, deproved_stock, advantage_kept_stock = benchmark(self, StockAgent(depth=4), test_games)
-                summary=tf.Summary()
-                summary.value.add(tag='improved_random', simple_value = improved_random)
-                summary.value.add(tag='deproved_random', simple_value = deproved_random)
-                summary.value.add(tag='advantage_kept_random', simple_value = advantage_kept_random)
-                summary.value.add(tag='improved_stock', simple_value = improved_stock)
-                summary.value.add(tag='deproved_stock', simple_value = deproved_stock)
-                summary.value.add(tag='advantage_kept_stock', simple_value = advantage_kept_stock)
-                writer.add_summary(summary, epoch)
-                writer.flush()
-            epoch += 1
-        print(errors)
+        
 
 
 if __name__ == '__main__':
