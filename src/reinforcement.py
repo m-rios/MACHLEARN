@@ -52,11 +52,16 @@ class TemporalDifference( Agent ):
         self.optimizer = tf.train.AdamOptimizer()
         
         self.grads_s = [tf.placeholder(tf.float32, shape=tvar.get_shape()) for tvar in self.model.trainables]
-        self.apply_grads = self.optimizer.apply_gradients(zip(self.grads_s, self.model.trainables))
+        self.paired_grads = zip(self.grads_s, self.model.trainables)
+        self.apply_grads = self.optimizer.apply_gradients(self.paired_grads)
+
+        for grad, var in list(self.paired_grads):
+            tf.summary.histogram(var.name + '/gradient', grad)
+
+        tf.summary.scalar('evaluation', tf.reshape(self.ev, []))
+        self.summary_op = tf.summary.merge_all()
 
         self.init = tf.global_variables_initializer()
-
-        # self.must_cleanup = True
 
         self.session = tf.Session()
         self.session.run(self.init)
@@ -68,6 +73,10 @@ class TemporalDifference( Agent ):
             self.session = session
         elif session_path is not None:
             self.saver.restore(self.session, session_path)
+        
+        self.handler = chess.uci.InfoHandler()
+        self.engine = chess.uci.popen_engine('stockfish')
+        self.engine.info_handlers.append(self.handler)
 
 
     def compute_gradients(self, root, _lambda=0.7, depth=6):
@@ -152,6 +161,17 @@ class TemporalDifference( Agent ):
         else:
             features = u.fromFen(fen)
             return np.array(features).reshape((1, 64*4+2))    
+    
+    def get_stock_ev(self, fen):
+        self.engine.position(chess.Board(fen))
+        evaluation = self.engine.go(depth=10)
+        handler_score = self.handler.info["score"][1]
+        assert handler_score.cp is not None or handler_score is not None
+        if handler_score.cp is not None:
+            score = handler_score.cp
+        else:
+            score = handler_score.mate
+        return np.sign(score)
 
     def train(self):
         save_file_name = self.save_path+'{}.ckpt'.format(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
@@ -160,7 +180,7 @@ class TemporalDifference( Agent ):
         with open(fens_path,'r') as fen_file:
             fens = fen_file.readlines()
         
-        test_games = fens[len(fens)-10:len(fens)]
+        test_games = fens[len(fens)-2:len(fens)]
         errors = []
     
         epoch = 0
@@ -171,6 +191,8 @@ class TemporalDifference( Agent ):
             
             fen = fens[epoch]
 
+            summary = tf.Summary()
+
             if not (epoch % 2000):
                 print('benchmarking')
                 self.saver.save(self.session, save_file_name)
@@ -178,12 +200,10 @@ class TemporalDifference( Agent ):
                 print('Improved: {}, Deproved: {}'.format(improved_random, deproved_random))
                 improved_stock, deproved_stock = benchmark(self, StockAgent(depth=4), test_games)
                 print('Improved: {}, Deproved: {}'.format(improved_stock, deproved_stock))
-                summary=tf.Summary()
                 summary.value.add(tag='improved_random', simple_value = improved_random)
                 summary.value.add(tag='deproved_random', simple_value = deproved_random)
                 summary.value.add(tag='improved_stock', simple_value = improved_stock)
                 summary.value.add(tag='deproved_stock', simple_value = deproved_stock)
-                writer.add_summary(summary, epoch)
                 writer.flush()
         
             print('about to compute gradient')
@@ -191,9 +211,18 @@ class TemporalDifference( Agent ):
             grads = self.compute_gradients(fen)
 
             print('gradient {} computed'.format(epoch))
+            
+            feed = {grad_: -grad for grad_, grad in zip(self.grads_s, grads) }
+            feed[self.X] = self.convert_input(fen)
+            print(feed)
+            _, evalu, summary2 = self.session.run([self.apply_grads, self.ev, self.summary_op], feed_dict=feed)            
+            
+            print(evalu)
 
-            self.session.run(self.apply_grads, feed_dict={grad_: -grad 
-                                                                    for grad_, grad in zip(self.grads_s, grads) })
+            stock_ev = self.get_stock_ev(fen)
+            summary.value.add(tag='stock_evaluation', simple_value = stock_ev)
+            writer.add_summary(summary, epoch)
+            writer.add_summary(summary2, epoch)
         
 
 
