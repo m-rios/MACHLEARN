@@ -1,9 +1,9 @@
 # Solving End Games in Chess: Supervised and Reinforcement learning based approaches
 ## Instructions to install
 
-- The Stockfish open source chess engine is needed for the project to run. It can be downloaded from [here](https://stockfishchess.org/download/).
-- The project has been developed in a Unix-like environment. It has not been tested with Windows. For the project to find the stockfish binaries, they must be added to $PATH, under the name 'stockfish'.
-- The following Python 3 dependencies must be installed for the project to run:
+The Stockfish open source chess engine is needed for the project to run. It can be downloaded from [here](https://stockfishchess.org/download/).
+The project has been developed in a Unix-like environment. It has not been tested with Windows. For the project to find the stockfish binaries, they must be added to $PATH, under the name 'stockfish'.
+The following **Python 3** dependencies must be installed for the project to run:
 * Numpy
 * python-chess
 * Tensorflow
